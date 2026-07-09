@@ -1,0 +1,217 @@
+@tailwind base;
+
+@tailwind components;
+
+@tailwind utilities;
+
+
+
+@layer base {
+
+  html {
+
+    scroll-behavior: smooth;
+
+    scroll-snap-type: y proximity;
+
+  }
+
+
+
+  body {
+
+    @apply bg-neon-bg text-white antialiased;
+
+    font-family: "Inter", system-ui, sans-serif;
+
+  }
+
+
+
+  body.cursor-none,
+
+  body.cursor-none a,
+
+  body.cursor-none button {
+
+    cursor: none;
+
+  }
+
+
+
+  ::selection {
+
+    @apply bg-red-600/40 text-white;
+
+  }
+
+
+
+  select option {
+
+    background: #111113;
+
+    color: white;
+
+  }
+
+}
+
+
+
+@layer utilities {
+
+  .gradient-text {
+
+    @apply bg-gradient-to-r from-neon-crimson to-neon-ruby bg-clip-text text-transparent;
+
+  }
+
+
+
+  .gradient-crimson {
+
+    @apply bg-gradient-to-r from-neon-crimson to-neon-ruby;
+
+  }
+
+
+
+  .glow-crimson {
+
+    text-shadow: 0 0 20px rgba(220, 38, 38, 0.6);
+
+  }
+
+
+
+  .bg-mesh-gradient {
+
+    background:
+
+      radial-gradient(ellipse 80% 60% at 20% 30%, rgba(220, 38, 38, 0.08), transparent),
+
+      radial-gradient(ellipse 60% 50% at 80% 70%, rgba(153, 27, 27, 0.06), transparent),
+
+      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(230, 0, 0, 0.03), transparent);
+
+    animation: mesh-drift 20s ease-in-out infinite alternate;
+
+  }
+
+
+
+  .bg-grid-pattern {
+
+    background-image:
+
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+
+    background-size: 48px 48px;
+
+  }
+
+
+
+  .bg-noise {
+
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+
+    background-size: 128px 128px;
+
+  }
+
+
+
+  .slider-crimson::-webkit-slider-thumb {
+
+    -webkit-appearance: none;
+
+    appearance: none;
+
+    width: 18px;
+
+    height: 18px;
+
+    border-radius: 50%;
+
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+
+    cursor: pointer;
+
+    box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
+
+    border: 2px solid rgba(255, 255, 255, 0.2);
+
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  }
+
+
+
+  .slider-crimson::-webkit-slider-thumb:hover {
+
+    transform: scale(1.15);
+
+    box-shadow: 0 0 16px rgba(220, 38, 38, 0.7);
+
+  }
+
+
+
+  .slider-crimson::-moz-range-thumb {
+
+    width: 18px;
+
+    height: 18px;
+
+    border-radius: 50%;
+
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+
+    cursor: pointer;
+
+    box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
+
+    border: 2px solid rgba(255, 255, 255, 0.2);
+
+  }
+
+  .disclaimer-clip {
+    clip-path: polygon(18px 0, 100% 0, 100% 100%, 0 100%, 0 18px);
+  }
+
+}
+
+
+
+@keyframes mesh-drift {
+
+  0% {
+
+    transform: translate(0, 0) scale(1);
+
+  }
+
+  100% {
+
+    transform: translate(2%, -1%) scale(1.02);
+
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-mesh-gradient {
+    animation: none !important;
+  }
+
+  .animate-ticker {
+    animation: none !important;
+  }
+}
+
+

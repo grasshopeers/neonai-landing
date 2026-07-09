@@ -1,0 +1,22 @@
+{
+  "name": "neonai-discord",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "discover": "tsx src/discover.ts",
+    "setup": "tsx src/setup.ts",
+    "bot": "tsx src/bot.ts",
+    "start": "tsx src/bot.ts",
+    "dev": "tsx watch src/bot.ts"
+  },
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
