@@ -65,6 +65,12 @@ export const slashCommands = [
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
     .setDMPermission(false),
+
+  new SlashCommandBuilder()
+    .setName("members")
+    .setDescription("List all server members (staff only)")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .setDMPermission(false),
 ].map((cmd) => cmd.toJSON());
 
 export async function registerSlashCommands(

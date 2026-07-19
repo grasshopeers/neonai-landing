@@ -34,6 +34,10 @@ import {
   classifyTicketMessage,
 } from "./ticket-intents.js";
 import {
+  isLifetimeEligible,
+  lifetimeRequirementMessage,
+} from "./purchase-history.js";
+import {
   buildTicketMuteReply,
   isTicketCustomerMuted,
   recordUnrecognizedTicketMessage,
@@ -53,6 +57,11 @@ import {
   recordTicketClosed,
   recordTicketOpenAttempt,
 } from "./ticket-guard.js";
+import {
+  deferEphemeral,
+  resolveInteractionMember,
+} from "./interaction-utils.js";
+import { handleMembersCommand } from "./staff-members.js";
 
 const token = process.env.DISCORD_BOT_TOKEN;
 const guildId = process.env.DISCORD_GUILD_ID;
@@ -229,33 +238,50 @@ async function closeTicket(
 async function handleVerify(
   interaction: import("discord.js").ButtonInteraction
 ) {
+  if (!(await deferEphemeral(interaction))) return;
+
   const roles = resolveRoleMap(interaction.guild!);
   if (!roles.member) {
-    await interaction.reply({
+    await interaction.editReply({
       content: "Member role missing — re-run `npm run setup`.",
-      ephemeral: true,
     });
     return;
   }
 
-  const member = await interaction.guild!.members.fetch(interaction.user.id);
+  const member = await resolveInteractionMember(interaction);
+  if (!member) {
+    await interaction.editReply({
+      content: "Could not load your member profile. Try again.",
+    });
+    return;
+  }
+
   if (member.roles.cache.has(roles.member.id)) {
-    await interaction.reply({
-      content: "You're already verified.",
-      ephemeral: true,
+    await interaction.editReply({
+      content: "You're already verified — you can open tickets in **#┃ticket**.",
     });
     return;
   }
 
-  await member.roles.add(roles.member, "NeonAi verification");
-  await interaction.reply({
+  try {
+    await member.roles.add(roles.member, "NeonAi verification");
+  } catch (err) {
+    console.error("Verify role error:", err);
+    await interaction.editReply({
+      content:
+        "Could not assign the **Member** role. Ask staff to check the bot has **Manage Roles** and its role is above **Member**.",
+    });
+    return;
+  }
+
+  await interaction.editReply({
     content: [
       `${BRAND.emoji.verify} **Verified!** Welcome to **${BRAND.name}**.`,
       "",
       `Start with **#${CHANNELS.welcome}** and **#${CHANNELS.news}**.`,
-      `Need help? Members use **#${CHANNELS.ticket}** · Customers use **#${CHANNELS.customerSupport}** after purchase.`,
+      `Open a ticket in **#${CHANNELS.ticket}** anytime you need help.`,
+      `After purchase, use **#${CHANNELS.customerSupport}** as a **Customer**.`,
     ].join("\n"),
-    ephemeral: true,
   });
 }
 
@@ -287,13 +313,7 @@ async function welcomeNewMember(member: import("discord.js").GuildMember) {
   try {
     await member.send({ embeds: [embed] });
   } catch {
-    /* DMs closed — they still only see #┃verify in-server */
-  }
-
-  if (verifyChannel?.isTextBased()) {
-    await verifyChannel.send({
-      content: `${member} — welcome! Click **Verify** above to unlock the server.`,
-    });
+    /* DMs closed — the verify panel in #┃verify already explains what to do */
   }
 }
 
@@ -303,7 +323,9 @@ client.once("ready", async () => {
   if (client.user && guildId) {
     try {
       await registerSlashCommands(token!, client.user.id, guildId);
-      console.log("Slash commands registered: /setup, /stripe, /unmute, /deliver");
+      console.log(
+        "Slash commands registered: /setup, /stripe, /unmute, /deliver, /members"
+      );
     } catch (err) {
       console.error("Failed to register slash commands:", err);
     }
@@ -360,6 +382,17 @@ async function handleTicketMessage(
 
   if (intent === "compatibility_intro") {
     compatibilityIntroSent.add(channelId);
+  }
+
+  if (intent === "valid_tier" && tier === "Lifetime" && !isLifetimeEligible(userId)) {
+    const embed = new EmbedBuilder()
+      .setColor(BRAND.colors.ruby)
+      .setTitle(`${BRAND.emoji.ticket} Lifetime Not Available Yet`)
+      .setDescription(lifetimeRequirementMessage(userId))
+      .setFooter(brandEmbed().footer);
+
+    await message.channel.send({ embeds: [embed] });
+    return;
   }
 
   if (shouldCountTowardTicketMute(intent, message.content, ticketKind)) {
@@ -436,6 +469,10 @@ client.on("interactionCreate", async (interaction) => {
         await handleDeliverCommand(interaction);
         return;
       }
+      if (interaction.commandName === "members") {
+        await handleMembersCommand(interaction);
+        return;
+      }
     }
 
     if (interaction.isButton() && interaction.customId === "neonai_verify") {
@@ -452,23 +489,30 @@ client.on("interactionCreate", async (interaction) => {
       interaction.isStringSelectMenu() &&
       interaction.customId === "neonai_ticket_select"
     ) {
+      if (!(await deferEphemeral(interaction))) return;
+
       const roles = resolveRoleMap(interaction.guild);
-      const member = await interaction.guild.members.fetch(interaction.user.id);
+      const member = await resolveInteractionMember(interaction);
+      if (!member) {
+        await interaction.editReply({
+          content: "Could not load your profile. Try again.",
+        });
+        return;
+      }
+
       const panelChannel = interaction.channel?.name;
       const onCustomerPanel = panelChannel === CHANNELS.customerSupport;
 
       if (onCustomerPanel) {
         if (!roles.customer || !member.roles.cache.has(roles.customer.id)) {
-          await interaction.reply({
+          await interaction.editReply({
             content: `This panel is for **Customer** role only. Purchase a license first, or use **#${CHANNELS.ticket}** if you're not a customer yet.`,
-            ephemeral: true,
           });
           return;
         }
       } else if (!roles.member || !member.roles.cache.has(roles.member.id)) {
-        await interaction.reply({
-          content: `You must verify in **#${CHANNELS.verify}** before opening a ticket.`,
-          ephemeral: true,
+        await interaction.editReply({
+          content: `Verify first in **#${CHANNELS.verify}** — click **Verify**, then come back here.`,
         });
         return;
       }
@@ -477,13 +521,11 @@ client.on("interactionCreate", async (interaction) => {
 
       const gate = checkCanOpenTicket(interaction.user.id);
       if (!gate.allowed) {
-        await interaction.reply({ content: gate.reason!, ephemeral: true });
+        await interaction.editReply({ content: gate.reason! });
         return;
       }
 
       recordTicketOpenAttempt(interaction.user.id);
-
-      await interaction.deferReply({ ephemeral: true });
 
       const result = await createTicket(
         interaction.guild,

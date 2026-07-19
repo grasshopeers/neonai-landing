@@ -30,8 +30,17 @@ import {
   recordTicketClosed,
   recordTicketOpenAttempt,
 } from "./ticket-guard.js";
+import {
+  isLifetimeEligible,
+  recordLicensePurchase,
+} from "./purchase-history.js";
 import { isLicenseTier, type LicenseTier } from "./tiers.js";
 import { staffUnmuteTicketCustomer } from "./ticket-spam.js";
+import { NEONAI_DOWNLOAD_URL } from "./site.js";
+import {
+  deferEphemeral,
+  resolveInteractionMember,
+} from "./interaction-utils.js";
 
 const TICKET_PREFIX = "ticket-";
 const PURCHASE_SLUG = "purchase";
@@ -236,6 +245,15 @@ export async function handleStripeCommand(
     return;
   }
 
+  if (tier === "Lifetime" && !isLifetimeEligible(openerId)) {
+    await interaction.reply({
+      content:
+        "This customer has not met the **Lifetime** requirement yet (needs 3+ months of prior licenses). Deliver a shorter tier first.",
+      ephemeral: true,
+    });
+    return;
+  }
+
   await interaction.deferReply({ ephemeral: true });
 
   const checkoutEmbed = new EmbedBuilder()
@@ -384,6 +402,15 @@ export async function handleDeliverCommand(
     return;
   }
 
+  if (tier === "Lifetime" && !isLifetimeEligible(openerId)) {
+    await interaction.reply({
+      content:
+        "This customer has not met the **Lifetime** requirement yet (needs 3+ months of prior licenses). Deliver a shorter tier first.",
+      ephemeral: true,
+    });
+    return;
+  }
+
   await interaction.deferReply({ ephemeral: true });
 
   const deliveryEmbed = new EmbedBuilder()
@@ -428,6 +455,8 @@ export async function handleDeliverCommand(
     await logChannel.send({ embeds: [logEmbed] });
   }
 
+  recordLicensePurchase(openerId, tier);
+
   await interaction.editReply({
     content: customerAccess.granted
       ? `Delivered **${tier}** key and granted **Customer** access to <@${openerId}>. Ticket closes in 10 minutes.`
@@ -447,26 +476,32 @@ export async function handleDeliverCommand(
 export async function handlePurchaseTicketButton(
   interaction: ButtonInteraction
 ) {
+  if (!(await deferEphemeral(interaction))) return;
+
   const roles = resolveRoleMap(interaction.guild!);
-  const member = await interaction.guild!.members.fetch(interaction.user.id);
+  const member = await resolveInteractionMember(interaction);
+
+  if (!member) {
+    await interaction.editReply({
+      content: "Could not load your profile. Try again.",
+    });
+    return;
+  }
 
   if (!roles.member || !member.roles.cache.has(roles.member.id)) {
-    await interaction.reply({
-      content: `Verify in **#${CHANNELS.verify}** before opening a purchase ticket.`,
-      ephemeral: true,
+    await interaction.editReply({
+      content: `Verify first in **#${CHANNELS.verify}** — click **Verify**, then open a purchase ticket.`,
     });
     return;
   }
 
   const gate = checkCanOpenTicket(interaction.user.id);
   if (!gate.allowed) {
-    await interaction.reply({ content: gate.reason!, ephemeral: true });
+    await interaction.editReply({ content: gate.reason! });
     return;
   }
 
   recordTicketOpenAttempt(interaction.user.id);
-
-  await interaction.deferReply({ ephemeral: true });
 
   const result = await createPurchaseTicket(
     interaction.guild!,

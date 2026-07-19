@@ -1,7 +1,7 @@
 import { EmbedBuilder } from "discord.js";
 import { BRAND, brandEmbed } from "./brand.js";
 import { CHANNELS } from "./layout.js";
-import { formatTierList } from "./tiers.js";
+import { formatLifetimeRequirement, formatTierList } from "./tiers.js";
 
 /** Staff-only onboarding embeds — posted to #┃staff-guide */
 export function buildStaffOnboardingEmbeds() {
@@ -41,6 +41,8 @@ export function buildStaffOnboardingEmbeds() {
         "",
         "**`/unmute`** — restore send permissions if a customer was spam-muted",
         "",
+        "**`/members`** — full member list (staff only, private reply)",
+        "",
         "**`/setup`** — repost purchase panel (Management / setup permission)",
       ].join("\n")
     )
@@ -55,6 +57,10 @@ export function buildStaffOnboardingEmbeds() {
         tiers,
         "",
         "If a customer asks for an unsupported duration, the bot will redirect them to these tiers.",
+        "",
+        formatLifetimeRequirement(),
+        "",
+        "Purchase history for Lifetime eligibility is tracked automatically when you run **`/deliver`**.",
       ].join("\n")
     )
     .setFooter(brandEmbed().footer);
@@ -88,6 +94,9 @@ export function buildStaffOnboardingEmbeds() {
     .setTitle("Channel Quick Reference")
     .setDescription(
       [
+        `**#${CHANNELS.members}** — open this to see **everyone** in the right member list`,
+        `_Discord only shows members who share the channel you're viewing — staff channels hide regular members._`,
+        `**#${CHANNELS.verify}** — unverified users only see this channel (no public join pings)`,
         `**#${CHANNELS.ticketLogs}** — delivery & Stripe logs`,
         `**#${CHANNELS.staffChat}** — internal coordination`,
         `**#${CHANNELS.moderation}** — bans, reports, escalations`,

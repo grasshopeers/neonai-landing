@@ -116,6 +116,10 @@ export default function Pricing() {
                         </span>
                       </div>
 
+                      {"note" in tier && tier.note && (
+                        <p className="mt-1 text-[11px] text-white/25">{tier.note}</p>
+                      )}
+
                       {/* Mobile tag + CTA hint */}
                       <motion.p
                         className="mt-1 flex items-center gap-1.5 text-xs text-white/35 sm:mt-1.5"

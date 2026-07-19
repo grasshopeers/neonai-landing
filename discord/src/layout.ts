@@ -54,6 +54,7 @@ export const CHANNELS = {
   chat: "┃chat",
   voice: "┃voice",
   ticketLogs: "┃ticket-logs",
+  members: "┃members",
   staffGuide: "┃staff-guide",
   staffChat: "┃staff-chat",
   moderation: "┃moderation",
@@ -135,6 +136,8 @@ type ChannelDef = {
   customerOnly?: boolean;
   memberOnly?: boolean;
   verifyChannel?: boolean;
+  /** Staff open this channel to see the full sidebar member list */
+  staffMemberList?: boolean;
 };
 
 type CategoryDef = {
@@ -280,6 +283,13 @@ export const SERVER_LAYOUT: CategoryDef[] = [
   {
     name: CATEGORIES.staff,
     channels: [
+      {
+        name: CHANNELS.members,
+        type: ChannelType.GuildText,
+        topic: "Staff: open this channel to view the full server member list.",
+        readOnly: true,
+        staffMemberList: true,
+      },
       {
         name: CHANNELS.staffGuide,
         type: ChannelType.GuildText,
@@ -461,6 +471,34 @@ export function channelOverwrites(
     PermissionFlagsBits.MuteMembers,
     PermissionFlagsBits.MoveMembers,
   ];
+
+  if (channel.staffMemberList) {
+    overwrites.push({
+      id: everyone.id,
+      deny: [PermissionFlagsBits.ViewChannel],
+    });
+    const viewOnly = [
+      PermissionFlagsBits.ViewChannel,
+      PermissionFlagsBits.ReadMessageHistory,
+    ];
+    if (roles.member) {
+      overwrites.push({
+        id: roles.member.id,
+        allow: viewOnly,
+        deny: denyPost,
+      });
+    }
+    if (roles.customer) {
+      overwrites.push({
+        id: roles.customer.id,
+        allow: viewOnly,
+        deny: denyPost,
+      });
+    }
+    addStaffAccess(overwrites, roles, staffWrite);
+    addBotAccess(guild, overwrites);
+    return overwrites;
+  }
 
   if (channel.verifyChannel) {
     overwrites.push({
