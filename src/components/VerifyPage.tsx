@@ -1,11 +1,7 @@
 import { FormEvent, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2, KeyRound, Loader2, XCircle } from "lucide-react";
-import {
-  DISCORD_INVITE_URL,
-  VERIFY_STATUS_URL,
-  type VerifyStatusResponse,
-} from "../constants";
+import { VERIFY_STATUS_URL, type VerifyStatusResponse } from "../constants";
 
 type VerifyState =
   | { kind: "idle" }
@@ -110,8 +106,7 @@ export default function VerifyPage() {
             Verify your <span className="gradient-text">license key</span>
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/50">
-            Check whether a key is valid before purchase or download. This page does
-            not activate your PC — open NeonAi.exe after installing to bind your hardware.
+            Check whether a license key is valid, expired, or already in use.
           </p>
         </motion.div>
 
@@ -186,9 +181,9 @@ export default function VerifyPage() {
                         Expires: <span className="text-white">{formatExpiry(result.expires)}</span>
                       </p>
                       <p className="text-white/70">
-                        PC activation:{" "}
+                        Status:{" "}
                         <span className="text-white">
-                          {result.activated ? "Already bound to a PC" : "Not activated yet — ready to use"}
+                          {result.activated ? "Already in use" : "Available"}
                         </span>
                       </p>
                     </>
@@ -198,23 +193,6 @@ export default function VerifyPage() {
             </div>
           )}
         </motion.form>
-
-        <div className="mt-8 rounded-xl border border-white/5 bg-white/[0.02] p-5 text-sm text-white/50">
-          <p className="font-semibold text-white/80">Next steps</p>
-          <ul className="mt-2 list-inside list-disc space-y-1">
-            <li>Download NeonAi v1 from Discord after purchase.</li>
-            <li>Run Install.bat, then NeonAi.exe, and enter this key once.</li>
-            <li>HWID binds on first activation inside the app — not in this browser.</li>
-          </ul>
-          <a
-            href={DISCORD_INVITE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-block font-semibold text-neon-crimson hover:underline"
-          >
-            Open Discord support →
-          </a>
-        </div>
       </main>
     </div>
   );
