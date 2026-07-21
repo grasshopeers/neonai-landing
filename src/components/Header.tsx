@@ -11,9 +11,9 @@ interface HeaderProps {
 
 export default function Header({ scrolled }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const sectionIds = NAV_LINKS.filter((l) => l.sectionId !== "discord-cta").map(
-    (l) => l.sectionId
-  );
+  const sectionIds = NAV_LINKS.filter(
+    (l) => l.sectionId !== "discord-cta" && !("external" in l && l.external)
+  ).map((l) => l.sectionId);
   const activeSection = useScrollSpy(sectionIds);
 
   const scrollTo = (href: string) => {
@@ -58,6 +58,18 @@ export default function Header({ scrolled }: HeaderProps) {
                     href={DISCORD_INVITE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
+                    className="text-sm font-medium text-white/60 transition-colors hover:text-white"
+                  >
+                    {link.label}
+                  </a>
+                );
+              }
+
+              if ("external" in link && link.external) {
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
                     className="text-sm font-medium text-white/60 transition-colors hover:text-white"
                   >
                     {link.label}
@@ -142,6 +154,19 @@ export default function Header({ scrolled }: HeaderProps) {
                         href={DISCORD_INVITE_URL}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() => setMenuOpen(false)}
+                        className="rounded-lg px-4 py-3.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.04] hover:text-white"
+                      >
+                        {link.label}
+                      </a>
+                    );
+                  }
+
+                  if ("external" in link && link.external) {
+                    return (
+                      <a
+                        key={link.href}
+                        href={link.href}
                         onClick={() => setMenuOpen(false)}
                         className="rounded-lg px-4 py-3.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.04] hover:text-white"
                       >

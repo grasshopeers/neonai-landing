@@ -3,6 +3,21 @@ import { Crosshair, Shield, Zap, Headphones } from "lucide-react";
 /** Discord server invite — all purchase CTAs redirect here for ticket bot flow */
 export const DISCORD_INVITE_URL = "https://discord.gg/mPD4AfwbGU";
 
+/** Read-only license status (website verify page — no model_key, no HWID bind) */
+export const VERIFY_STATUS_URL =
+  "https://neonai-license.shioneggs.workers.dev/verify-status";
+
+export type VerifyStatusResponse = {
+  valid: boolean;
+  reason?: string | null;
+  plan?: string;
+  plan_label?: string;
+  expires?: string | null;
+  activated?: boolean;
+  revoked?: boolean;
+  server_time?: string;
+};
+
 /** @deprecated Use DISCORD_INVITE_URL — kept as alias for community links */
 export const DISCORD_URL = DISCORD_INVITE_URL;
 
@@ -16,6 +31,7 @@ export function getPurchaseDiscordUrl(source = "purchase"): string {
 export const NAV_LINKS = [
   { label: "Features", href: "#features", sectionId: "features" },
   { label: "Pricing", href: "#pricing", sectionId: "pricing" },
+  { label: "Verify Key", href: "/verify", sectionId: "verify", external: true },
   { label: "Control Panel", href: "#demo", sectionId: "demo" },
   { label: "FAQ", href: "#faq", sectionId: "faq" },
   { label: "Discord", href: DISCORD_INVITE_URL, sectionId: "discord-cta" },

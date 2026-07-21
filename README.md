@@ -18,6 +18,22 @@ npm run build
 npm run preview
 ```
 
+## Deploy (Cloudflare Pages)
+
+One-command deploy (requires `wrangler login` once):
+
+```powershell
+.\deploy-pages.ps1
+```
+
+Production URL: **https://neonai-landing.pages.dev**  
+Latest deployment also at `https://<hash>.neonai-landing.pages.dev`.
+
+Custom domain `neonai.app`: Cloudflare dashboard → Pages → neonai-landing → Custom domains → add `neonai.app` and `www.neonai.app` (zone must be on the same Cloudflare account).
+
+Verify page: **/verify** — read-only license key check (calls license worker `verify-status`).
+
+
 ## Configure Discord invite (purchases + community)
 
 All purchase CTAs redirect to Discord — the ticket bot handles tier selection and payment. No frontend checkout.

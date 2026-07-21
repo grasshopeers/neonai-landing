@@ -1,0 +1,3 @@
+/* SPA fallback — static assets are served first by Pages */
+/verify    /index.html   200
+/*         /index.html   200
