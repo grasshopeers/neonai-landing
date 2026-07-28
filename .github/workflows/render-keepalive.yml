@@ -1,0 +1,18 @@
+name: Keep Render ticket bot awake
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping NeonAi ticket bot
+        run: |
+          code=$(curl -s -o /tmp/render-health.txt -w "%{http_code}" \
+            "https://neonai-ticket-bot.onrender.com/")
+          body=$(head -c 80 /tmp/render-health.txt)
+          echo "HTTP $code — $body"
+          test "$code" = "200"
