@@ -1,22 +1,11 @@
 import "dotenv/config";
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 const apiKey = process.env.RENDER_API_KEY;
 const ticketToken = process.env.DISCORD_TICKET_BOT_TOKEN;
 const guildId = process.env.DISCORD_GUILD_ID;
 
 if (!apiKey) {
-  console.error(`
-Missing RENDER_API_KEY.
-
-1. Open https://dashboard.render.com/u/settings#api-keys
-2. Create an API key
-3. Run:
-   $env:RENDER_API_KEY="rnd_..."
-   npm run configure-render
-`);
+  console.error("Missing RENDER_API_KEY in discord/.env");
   process.exit(1);
 }
 
@@ -31,72 +20,106 @@ const headers = {
   "Content-Type": "application/json",
 };
 
-const services = await fetch("https://api.render.com/v1/services?limit=50", {
-  headers,
-}).then((r) => r.json());
+type ServiceRef = { id: string; name: string };
 
-const list = services as { cursor?: string; service?: { id: string; name: string; type: string } }[];
-const flat = Array.isArray(services)
-  ? services
-  : list.flatMap?.((item) => (item.service ? [item.service] : [])) ?? [];
-
-let service =
-  flat.find((s: { name?: string }) => s.name === "neonai-ticket-bot") ??
-  null;
-
-if (!service) {
-  const page = await fetch("https://api.render.com/v1/services?name=neonai-ticket-bot", {
-    headers,
-  }).then((r) => r.json());
-  const fromSearch = (page as { service?: { id: string; name: string } }[]).map(
-    (p) => p.service
-  ).filter(Boolean);
-  service = fromSearch[0] ?? null;
+async function api(path: string, init?: RequestInit) {
+  const res = await fetch(`https://api.render.com/v1${path}`, {
+    ...init,
+    headers: { ...headers, ...(init?.headers as Record<string, string> | undefined) },
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`${init?.method ?? "GET"} ${path} failed (${res.status}): ${text || res.statusText}`);
+  }
+  return text ? JSON.parse(text) : null;
 }
 
-if (!service?.id) {
-  console.error("Could not find Render service 'neonai-ticket-bot'.");
-  console.error("Create the Blueprint from render.yaml first, then re-run.");
-  process.exit(1);
+async function getOwnerId(): Promise<string> {
+  const owners = (await api("/owners")) as { owner?: { id: string } }[];
+  const id = owners[0]?.owner?.id;
+  if (!id) throw new Error("No Render workspace found on this account.");
+  return id;
 }
 
-console.log(`Found service: ${service.name} (${service.id})`);
+async function listServices(): Promise<ServiceRef[]> {
+  const body = (await api("/services?limit=100")) as { service?: ServiceRef }[];
+  return body.map((row) => row.service).filter(Boolean) as ServiceRef[];
+}
 
-const envRes = await fetch(
-  `https://api.render.com/v1/services/${service.id}/env-vars`,
-  {
+async function findOrCreateService(ownerId: string): Promise<ServiceRef> {
+  let service = (await listServices()).find((s) => s.name === "neonai-ticket-bot");
+  if (service) return service;
+
+  console.log("Creating Render background worker neonai-ticket-bot...");
+  const created = (await api("/services", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "web_service",
+      name: "neonai-ticket-bot",
+      ownerId,
+      repo: "https://github.com/grasshopeers/neonai-landing",
+      branch: "main",
+      autoDeploy: "yes",
+      rootDir: "discord",
+      buildFilter: { paths: ["discord/**"] },
+      envVars: [
+        { key: "DISCORD_TICKET_BOT_TOKEN", value: ticketToken },
+        { key: "DISCORD_GUILD_ID", value: guildId },
+        {
+          key: "NEONAI_WEBSITE_URL",
+          value: process.env.NEONAI_WEBSITE_URL ?? "https://neonai-official.netlify.app",
+        },
+      ],
+      serviceDetails: {
+        runtime: "node",
+        plan: "free",
+        envSpecificDetails: {
+          buildCommand: "npm install",
+          startCommand: "npm run ticket-bot",
+        },
+      },
+    }),
+  })) as { service?: ServiceRef };
+
+  service = created.service;
+  if (!service?.id) throw new Error("Service create response missing service id.");
+  return service;
+}
+
+async function setEnvVars(serviceId: string) {
+  await api(`/services/${serviceId}/env-vars`, {
     method: "PUT",
-    headers,
     body: JSON.stringify([
       { key: "DISCORD_TICKET_BOT_TOKEN", value: ticketToken },
       { key: "DISCORD_GUILD_ID", value: guildId },
-      { key: "NEONAI_WEBSITE_URL", value: process.env.NEONAI_WEBSITE_URL ?? "https://neonai-official.netlify.app" },
+      {
+        key: "NEONAI_WEBSITE_URL",
+        value: process.env.NEONAI_WEBSITE_URL ?? "https://neonai-official.netlify.app",
+      },
     ]),
-  }
-);
-
-if (!envRes.ok) {
-  console.error("Failed to set env vars:", await envRes.text());
-  process.exit(1);
+  });
 }
 
-console.log("✓ Environment variables set on Render");
-
-const deploy = await fetch(
-  `https://api.render.com/v1/services/${service.id}/deploys`,
-  {
+async function triggerDeploy(serviceId: string) {
+  return api(`/services/${serviceId}/deploys`, {
     method: "POST",
-    headers,
     body: JSON.stringify({ clearCache: "do_not_clear" }),
-  }
-);
-
-if (!deploy.ok) {
-  console.error("Env set but deploy trigger failed:", await deploy.text());
-  process.exit(1);
+  }) as Promise<{ id?: string }>;
 }
 
-const deployBody = await deploy.json();
-console.log(`✓ Deploy triggered: ${deployBody.id ?? "ok"}`);
-console.log("\nStop your local ticket bot — only one process can use the same token.");
-console.log("Dashboard: https://dashboard.render.com/");
+try {
+  const ownerId = await getOwnerId();
+  const service = await findOrCreateService(ownerId);
+  console.log(`Service: ${service.name} (${service.id})`);
+
+  await setEnvVars(service.id);
+  console.log("Environment variables set on Render");
+
+  const deploy = await triggerDeploy(service.id);
+  console.log(`Deploy triggered (${deploy.id ?? "ok"})`);
+  console.log("\nStop your local ticket bot once Render logs show online.");
+  console.log("Dashboard: https://dashboard.render.com/");
+} catch (err) {
+  console.error(err instanceof Error ? err.message : err);
+  process.exit(1);
+}
