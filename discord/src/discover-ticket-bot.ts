@@ -38,7 +38,9 @@ const app = await fetch("https://discord.com/api/v10/oauth2/applications/@me", {
   headers,
 }).then((r) => r.json());
 
-const inviteUrl = `https://discord.com/api/oauth2/authorize?client_id=${app.id}&permissions=8&scope=bot`;
+const inviteUrl = guildId
+  ? `https://discord.com/api/oauth2/authorize?client_id=${app.id}&permissions=8&scope=bot&guild_id=${guildId}`
+  : `https://discord.com/api/oauth2/authorize?client_id=${app.id}&permissions=8&scope=bot`;
 console.log(`\nInvite ticket bot to your server (Administrator):\n${inviteUrl}\n`);
 
 const guilds = await fetch("https://discord.com/api/v10/users/@me/guilds", {

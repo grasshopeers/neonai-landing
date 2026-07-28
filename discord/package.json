@@ -6,6 +6,8 @@
   "scripts": {
     "discover": "tsx src/discover.ts",
     "discover-ticket-bot": "tsx src/discover-ticket-bot.ts",
+    "enable-ticket-intents": "tsx src/enable-ticket-intents.ts",
+    "configure-render": "tsx src/configure-render.ts",
     "setup": "tsx src/setup.ts",
     "bot": "tsx src/bot.ts",
     "ticket-bot": "tsx src/ticket-bot.ts",
