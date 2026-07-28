@@ -1,0 +1,15 @@
+services:
+  - type: worker
+    name: neonai-ticket-bot
+    runtime: node
+    rootDir: discord
+    buildCommand: npm install
+    startCommand: npm run ticket-bot
+    plan: free
+    envVars:
+      - key: DISCORD_TICKET_BOT_TOKEN
+        sync: false
+      - key: DISCORD_GUILD_ID
+        sync: false
+      - key: NEONAI_WEBSITE_URL
+        value: https://neonai-official.netlify.app

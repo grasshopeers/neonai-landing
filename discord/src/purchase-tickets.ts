@@ -35,7 +35,10 @@ import {
   recordLicensePurchase,
 } from "./purchase-history.js";
 import { isLicenseTier, type LicenseTier } from "./tiers.js";
-import { staffUnmuteTicketCustomer } from "./ticket-spam.js";
+import {
+  clearTicketStaffHandled,
+  staffTakesOverTicket,
+} from "./ticket-handoff.js";
 import { NEONAI_DOWNLOAD_URL } from "./site.js";
 import {
   deferEphemeral,
@@ -276,6 +279,8 @@ export async function handleStripeCommand(
 
   await channel.send({ content: `<@${openerId}>`, embeds: [checkoutEmbed] });
 
+  await staffTakesOverTicket(channel, channel.id, openerId);
+
   const logChannel = findTextChannel(interaction.guild!, CHANNELS.ticketLogs);
   if (logChannel) {
     const customer = await interaction.client.users
@@ -331,7 +336,7 @@ export async function handleUnmuteCommand(
   await interaction.deferReply({ ephemeral: true });
 
   try {
-    await staffUnmuteTicketCustomer(channel, channel.id, openerId);
+    await staffTakesOverTicket(channel, channel.id, openerId);
   } catch (err) {
     console.error("Staff unmute error:", err);
     await interaction.editReply({
@@ -431,6 +436,8 @@ export async function handleDeliverCommand(
 
   await channel.send({ content: `<@${openerId}>`, embeds: [deliveryEmbed] });
 
+  await staffTakesOverTicket(channel, channel.id, openerId);
+
   const customerAccess = await grantCustomerAccess(
     interaction.guild!,
     openerId,
@@ -465,6 +472,7 @@ export async function handleDeliverCommand(
 
   setTimeout(async () => {
     recordTicketClosed(openerId);
+    clearTicketStaffHandled(channel.id);
     try {
       await channel.delete("NeonAi license delivered — ticket closed");
     } catch {

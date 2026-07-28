@@ -56,9 +56,53 @@ npm run setup
 
 Safe to re-run — it skips roles/channels that already exist and only posts starter embeds if channels are empty.
 
-## 5. Run the bot (always)
+## 5. Always-on ticket bot (recommended)
 
-Keep this running on your PC, a VPS, or Railway/Render:
+Tickets and verify only work while the bot process is running. Use a **dedicated ticket bot** hosted 24/7 so members can verify and open tickets even when your PC is off.
+
+### Option A — One bot, host 24/7 (simplest)
+
+Deploy the same token on [Render](https://render.com) or Railway:
+
+```bash
+npm run ticket-bot
+```
+
+Set `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` in the host dashboard. Keep the process running — do not also run it locally with the same token.
+
+### Option B — Two bots (ticket bot online + staff bot on your PC)
+
+1. Create a second app in the [Developer Portal](https://discord.com/developers/applications) named **NeonAi Tickets**
+2. Enable **Server Members Intent** + **Message Content Intent**
+3. Invite it to your server (Administrator is easiest)
+4. Add to `.env`:
+   - `DISCORD_TICKET_BOT_TOKEN` — the new ticket bot
+   - `DISCORD_BOT_TOKEN` — your original NeonAi bot (staff commands)
+5. Repost panels so buttons route to the ticket bot:
+
+```bash
+npm run repost-panels
+```
+
+Delete the old verify/ticket panels posted by the main bot first.
+
+6. Deploy ticket bot 24/7:
+
+```bash
+npm run ticket-bot
+```
+
+Or connect this repo's `discord/` folder to Render using `render.yaml`.
+
+7. Run staff bot locally when you need `/stripe`, `/deliver`, etc.:
+
+```bash
+npm run bot
+```
+
+Both bots can run at the same time (different tokens). The ticket bot handles verify + tickets; the staff bot handles slash commands only.
+
+## 6. Staff bot (local)
 
 ```bash
 npm run bot
@@ -86,9 +130,11 @@ export const DISCORD_URL = "https://discord.gg/your-invite";
 
 ## Hosting tips
 
-- **PM2:** `pm2 start "npm run bot" --name neonai-discord`
-- **Railway/Render:** set env vars, start command `npm run bot`, root `discord/`
-- Never commit `.env` — it contains your bot token
+- **Render:** use `render.yaml` in this folder — start command runs `ticket-bot` via Docker
+- **PM2:** `pm2 start "npm run ticket-bot" --name neonai-tickets`
+- **Railway:** root `discord/`, start `npm run ticket-bot`, set env vars
+- Never commit `.env` — it contains your bot tokens
+- **Important:** Discord buttons only work for the bot that **posted** the panel. After switching to a ticket bot, run `npm run repost-panels`.
 
 ## Recommended companion bots (Nyron-style)
 
@@ -96,11 +142,12 @@ You **already have** ticket + verify in **NeonAi** — do **not** add a separate
 
 | Bot | Add? | What it does |
 |-----|------|----------------|
-| **NeonAi** (yours) | ✅ Already running | Verify gate, welcome banner, ticket panel, server layout |
+| **NeonAi Tickets** (yours) | ✅ Host 24/7 | Verify, open ticket, auto-replies — always online |
+| **NeonAi** (yours) | ✅ Run when staffing | `/stripe`, `/deliver`, `/setup`, `/members` |
 | **Dyno** | ✅ Yes | Auto-mod, warnings/kicks/bans, mod logs, slowmode, custom commands, optional backup verify via reactions |
 | **Guild Restore** | ✅ Yes | Backs up member list — if server gets nuked/deleted, restore community to a new server |
 | **Security / Wick** | ✅ Yes | Anti-nuke — stops rogue staff from mass-deleting channels, banning everyone, or changing permissions |
-| **Tickets** | ❌ Skip | Same job as `#┃ticket` in NeonAi — would conflict |
+| **Ticket Tool / Tickets bots** | ❌ Skip | Same job as NeonAi ticket bot — would conflict |
 
 ### Invite links (you click these — bots can't be added automatically)
 

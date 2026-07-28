@@ -84,7 +84,8 @@ export function buildStaffOnboardingEmbeds() {
         "",
         "**Spam mutes**",
         "• Bot auto-mutes after repeated gibberish / unrecognized spam (10 min)",
-        "• Use **`/unmute`** if they need to send more info",
+        "• **Auto-unmute + bot stops replying** as soon as a staff member responds in the ticket",
+        "• Use **`/unmute`** manually if needed before staff replies",
       ].join("\n")
     )
     .setFooter(brandEmbed().footer);

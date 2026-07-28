@@ -5,10 +5,15 @@
   "type": "module",
   "scripts": {
     "discover": "tsx src/discover.ts",
+    "discover-ticket-bot": "tsx src/discover-ticket-bot.ts",
     "setup": "tsx src/setup.ts",
     "bot": "tsx src/bot.ts",
-    "start": "tsx src/bot.ts",
-    "dev": "tsx watch src/bot.ts"
+    "ticket-bot": "tsx src/ticket-bot.ts",
+    "repost-panels": "tsx src/repost-panels.ts",
+    "start": "tsx src/ticket-bot.ts",
+    "start:staff": "tsx src/bot.ts",
+    "dev": "tsx watch src/bot.ts",
+    "dev:tickets": "tsx watch src/ticket-bot.ts"
   },
   "dependencies": {
     "discord.js": "^14.18.0",
