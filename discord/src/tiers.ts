@@ -1,9 +1,9 @@
 /** License tiers for /deliver and /stripe — values must match exactly */
 export const LICENSE_TIERS = [
-  { name: "1 Week", value: "1 Week", price: 22 },
-  { name: "1 Month", value: "1 Month", price: 34 },
-  { name: "3 Months", value: "3 Months", price: 68 },
-  { name: "Lifetime", value: "Lifetime", price: 89 },
+  { name: "Weekly", value: "1 Week", price: 22 },
+  { name: "Monthly", value: "1 Month", price: 34 },
+  { name: "Quarterly", value: "3 Months", price: 59 },
+  { name: "Lifetime", value: "Lifetime", price: 95 },
 ] as const;
 
 export type LicenseTier = (typeof LICENSE_TIERS)[number]["value"];
@@ -40,6 +40,10 @@ export function getTierPrice(tier: LicenseTier) {
   return LICENSE_TIERS.find((t) => t.value === tier)?.price;
 }
 
+export function getTierDisplayName(tier: LicenseTier) {
+  return LICENSE_TIERS.find((t) => t.value === tier)?.name ?? tier;
+}
+
 export function formatLifetimeRequirement() {
-  return "Lifetime requires **at least 3 months** of prior license purchases (e.g. one **3 Months** license, or multiple shorter tiers totaling 3+ months).";
+  return "Lifetime requires **at least 3 months** of prior license purchases (e.g. one **Quarterly** license, or multiple shorter tiers totaling 3+ months).";
 }

@@ -77,7 +77,7 @@ export function lifetimeRequirementMessage(userId: string): string {
     "",
     `Your recorded history: **${formatMonthCredits(credits)}** of prior licenses.`,
     remaining > 0
-      ? `You still need about **${formatMonthCredits(remaining)}** more from **1 Week**, **1 Month**, or **3 Months** tiers first.`
+      ? `You still need about **${formatMonthCredits(remaining)}** more from **Weekly**, **Monthly**, or **Quarterly** tiers first.`
       : "",
     "",
     "Start with a shorter tier — once you've hit 3 months total, staff can process Lifetime for you.",

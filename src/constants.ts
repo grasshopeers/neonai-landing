@@ -99,12 +99,12 @@ export const FAQ_ITEMS = [
   {
     question: "How do I purchase a license?",
     answer:
-      "Click any Get License or Purchase button on this site — you'll be redirected to our Discord server where our ticket bot opens a private channel and walks you through tier selection and payment. Current tiers: 1 Week ($22), 1 Month ($34), 3 Months ($68), and Lifetime ($89).",
+      "Click any Get License or Purchase button on this site — you'll be redirected to our Discord server where our ticket bot opens a private channel and walks you through tier selection and payment. Current tiers: Weekly ($22), Monthly ($34), Quarterly ($59), and Lifetime ($95).",
   },
   {
     question: "Who can buy Lifetime?",
     answer:
-      "Lifetime is available only if you've previously purchased at least 3 months worth of licenses (for example, one 3 Months license, or multiple shorter tiers that add up to 3+ months). New customers should start with 1 Week, 1 Month, or 3 Months first.",
+      "Lifetime is available only if you've previously purchased at least 3 months worth of licenses (for example, one Quarterly license, or multiple shorter tiers that add up to 3+ months). New customers should start with Weekly, Monthly, or Quarterly first.",
   },
   {
     question: "What is the return policy?",
@@ -127,29 +127,29 @@ export const SAVED_CONFIGS = [
 export const PRICING_TIERS = [
   {
     id: "1_week",
-    name: "1 Week",
+    name: "Weekly",
     price: 22,
     highlight: false,
     tag: "Quick trial",
   },
   {
     id: "1_month",
-    name: "1 Month",
+    name: "Monthly",
     price: 34,
     highlight: false,
     tag: "Flexible start",
   },
   {
     id: "3_months",
-    name: "3 Months",
-    price: 68,
+    name: "Quarterly",
+    price: 59,
     highlight: true,
     tag: "Best value",
   },
   {
     id: "lifetime",
     name: "Lifetime",
-    price: 89,
+    price: 95,
     highlight: false,
     tag: "Requires 3 mo. prior",
     note: "Available only after 3+ months of prior license purchases.",

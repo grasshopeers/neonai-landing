@@ -1,4 +1,4 @@
-import { formatTierList, getTierPrice, type LicenseTier } from "./tiers.js";
+import { formatTierList, getTierDisplayName, getTierPrice, type LicenseTier } from "./tiers.js";
 import { CHANNELS } from "./layout.js";
 import {
   NEONAI_SITE_URL,
@@ -17,13 +17,15 @@ export type TicketIntent =
   | "fallback";
 
 const VALID_TIER_PATTERNS: { pattern: RegExp; name: string }[] = [
-  { pattern: /\b(1|one)\s*[-]?\s*weeks?\b/i, name: "1 Week" },
-  { pattern: /\b1week\b/i, name: "1 Week" },
   { pattern: /\b(3|three)\s*[-]?\s*months?\b/i, name: "3 Months" },
   { pattern: /\b3months?\b/i, name: "3 Months" },
+  { pattern: /\bquarterly\b/i, name: "3 Months" },
   { pattern: /\b(1|one)\s*[-]?\s*months?\b/i, name: "1 Month" },
   { pattern: /\b1months?\b/i, name: "1 Month" },
   { pattern: /\b(monthly)\b/i, name: "1 Month" },
+  { pattern: /\b(1|one)\s*[-]?\s*weeks?\b/i, name: "1 Week" },
+  { pattern: /\b1week\b/i, name: "1 Week" },
+  { pattern: /\b(weekly)\b/i, name: "1 Week" },
   { pattern: /\blifetime\b/i, name: "Lifetime" },
   { pattern: /\blife\s*time\b/i, name: "Lifetime" },
 ];
@@ -144,10 +146,11 @@ export function buildTicketReply(
 
     case "valid_tier": {
       const price = tier ? getTierPrice(tier as LicenseTier) : null;
+      const displayName = tier ? getTierDisplayName(tier as LicenseTier) : tier;
       return {
         title: "Tier Received",
         description: [
-          `Thanks <@${userId}> — noted your interest in **${tier}**${price ? ` ($${price})` : ""}.`,
+          `Thanks <@${userId}> — noted your interest in **${displayName}**${price ? ` ($${price})` : ""}.`,
           "",
           "A staff member will send your secure **Stripe** payment link here shortly.",
           "All payments are processed and secured through **Stripe**.",
