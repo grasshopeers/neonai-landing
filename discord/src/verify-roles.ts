@@ -1,31 +1,35 @@
 import type { Guild } from "discord.js";
 import { resolveRoleMap } from "./layout.js";
 
-const DEFAULT_TICKET_BOT_ID = "1531682970048532740";
+/** Main NeonAi bot role must sit above Member or verify cannot assign the role. */
+export async function ensureMainBotRoleHierarchy(guild: Guild) {
+  const me = guild.members.me;
+  if (!me) throw new Error("Bot member not found in guild");
 
-/** Ticket bot role must sit above Member or verify button cannot assign the role. */
-export async function ensureTicketBotRoleHierarchy(
-  guild: Guild,
-  ticketBotUserId = process.env.DISCORD_TICKET_BOT_ID ?? DEFAULT_TICKET_BOT_ID
-) {
   const roles = resolveRoleMap(guild);
   const memberRole = roles.member;
   if (!memberRole) {
     throw new Error("Member role missing — run npm run setup");
   }
 
-  const ticketMember = await guild.members.fetch(ticketBotUserId);
-  const ticketRole = ticketMember.roles.botRole ?? ticketMember.roles.highest;
-
-  if (ticketRole.position > memberRole.position) {
-    return { fixed: false, ticketRole, memberRole };
+  const botRole = me.roles.highest;
+  if (botRole.position > memberRole.position) {
+    return { fixed: false, botRole, memberRole };
   }
 
-  await ticketRole.setPosition(memberRole.position, {
-    reason: "NeonAi: ticket bot must assign Member role for verify",
+  await botRole.setPosition(memberRole.position, {
+    reason: "NeonAi: main bot must assign Member role for verify",
   });
 
   await guild.roles.fetch();
-  const updated = guild.roles.cache.get(ticketRole.id)!;
-  return { fixed: true, ticketRole: updated, memberRole };
+  const updated = guild.roles.cache.get(botRole.id)!;
+  return { fixed: true, botRole: updated, memberRole };
+}
+
+/** @deprecated Ticket bot no longer handles verify */
+export async function ensureTicketBotRoleHierarchy(
+  guild: Guild,
+  _ticketBotUserId?: string
+) {
+  return ensureMainBotRoleHierarchy(guild);
 }

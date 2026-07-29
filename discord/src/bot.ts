@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { Client, GatewayIntentBits } from "discord.js";
+import { registerMainBotEvents } from "./register-public-events.js";
 import { registerSlashCommands } from "./commands.js";
 import {
   handleDeliverCommand,
@@ -8,19 +9,15 @@ import {
   handleUnmuteCommand,
 } from "./purchase-tickets.js";
 import { handleMembersCommand } from "./staff-members.js";
-import { registerPublicBotEvents } from "./register-public-events.js";
+import { startHealthServer } from "./health-server.js";
 
 const staffToken = process.env.DISCORD_BOT_TOKEN;
-const ticketBotToken = process.env.DISCORD_TICKET_BOT_TOKEN;
 const guildId = process.env.DISCORD_GUILD_ID;
 
 if (!staffToken || !guildId) {
   console.error("Missing DISCORD_BOT_TOKEN or DISCORD_GUILD_ID in .env");
   process.exit(1);
 }
-
-/** When a dedicated ticket bot is configured, this process is staff-only */
-const staffOnlyMode = Boolean(ticketBotToken);
 
 const client = new Client({
   intents: [
@@ -31,23 +28,18 @@ const client = new Client({
   ],
 });
 
-if (!staffOnlyMode) {
-  registerPublicBotEvents(client, guildId);
-}
+registerMainBotEvents(client, guildId);
+startHealthServer(() => client.isReady(), "NeonAi");
 
 client.once("ready", async () => {
   console.log(`NeonAi bot online as ${client.user?.tag}`);
-  if (staffOnlyMode) {
-    console.log(
-      "Staff-only mode — ticket bot handles verify/tickets (DISCORD_TICKET_BOT_TOKEN set)"
-    );
-  }
+  console.log("Handles: verify, welcome DMs, staff slash commands");
 
   if (client.user && guildId) {
     try {
       await registerSlashCommands(staffToken, client.user.id, guildId);
       console.log(
-        "Slash commands registered: /setup, /stripe, /unmute, /deliver, /members"
+        "Slash commands: /setup, /stripe, /unmute, /deliver, /members"
       );
     } catch (err) {
       console.error("Failed to register slash commands:", err);

@@ -1,4 +1,4 @@
-name: Keep Render ticket bot awake
+name: Keep Render bots awake
 
 on:
   schedule:
@@ -9,10 +9,13 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping NeonAi ticket bot
+      - name: Ping NeonAi bots on Render
         run: |
-          code=$(curl -s -o /tmp/render-health.txt -w "%{http_code}" \
-            "https://neonai-ticket-bot.onrender.com/")
-          body=$(head -c 80 /tmp/render-health.txt)
-          echo "HTTP $code — $body"
-          test "$code" = "200"
+          for url in \
+            "https://neonai-bot.onrender.com/" \
+            "https://neonai-ticket-bot.onrender.com/"; do
+            code=$(curl -s -o /tmp/render-health.txt -w "%{http_code}" "$url")
+            body=$(head -c 80 /tmp/render-health.txt)
+            echo "$url → HTTP $code — $body"
+            test "$code" = "200"
+          done

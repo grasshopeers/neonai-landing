@@ -11,6 +11,8 @@
     "setup-hosting": "tsx src/setup-hosting.ts",
     "setup": "tsx src/setup.ts",
     "bot": "tsx src/bot.ts",
+    "staff": "tsx src/fix-verify-roles.ts && tsx src/bot.ts",
+    "deploy-bots": "tsx src/configure-render.ts",
     "ticket-bot": "tsx src/ticket-bot.ts",
     "repost-panels": "tsx src/repost-panels.ts",
     "cleanup-old-panels": "tsx src/cleanup-old-panels.ts",

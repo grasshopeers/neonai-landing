@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { createServer } from "node:http";
 import { Client, GatewayIntentBits } from "discord.js";
-import { registerPublicBotEvents } from "./register-public-events.js";
+import { registerTicketBotEvents } from "./register-public-events.js";
+import { startHealthServer } from "./health-server.js";
 
 const token =
   process.env.DISCORD_TICKET_BOT_TOKEN ?? process.env.DISCORD_BOT_TOKEN;
@@ -23,19 +23,12 @@ const client = new Client({
   ],
 });
 
-registerPublicBotEvents(client, guildId);
+registerTicketBotEvents(client, guildId);
+startHealthServer(() => client.isReady(), "NeonAi Tickets");
 
 client.once("ready", () => {
-  console.log(`NeonAi ticket bot online as ${client.user?.tag}`);
-  console.log("Handles: verify, open ticket, purchase ticket, auto-replies");
-});
-
-const port = Number(process.env.PORT ?? 3000);
-createServer((_req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end(client.isReady() ? "ok" : "starting");
-}).listen(port, () => {
-  console.log(`Health check listening on port ${port}`);
+  console.log(`NeonAi Tickets online as ${client.user?.tag}`);
+  console.log("Handles: open/close tickets, purchase tickets, auto-replies");
 });
 
 client.login(token);

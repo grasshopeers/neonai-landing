@@ -2,7 +2,6 @@ import "dotenv/config";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ensureTicketBotRoleHierarchy } from "./verify-roles.js";
 
 const token = process.env.DISCORD_TICKET_BOT_TOKEN;
 const guildId = process.env.DISCORD_GUILD_ID;
@@ -62,33 +61,6 @@ const guild = inTarget
   : guilds[0];
 
 console.log(`✓ Ticket bot is in: ${guild.name} (${guild.id})`);
-
-const staffToken = process.env.DISCORD_BOT_TOKEN;
-if (staffToken && guildId) {
-  try {
-    const staffHeaders = { Authorization: `Bot ${staffToken}` };
-    const staffGuild = await fetch(
-      `https://discord.com/api/v10/guilds/${guildId}?with_counts=true`,
-      { headers: staffHeaders }
-    ).then((r) => (r.ok ? r.json() : null));
-    if (staffGuild) {
-      const { Client, GatewayIntentBits } = await import("discord.js");
-      const fixClient = new Client({ intents: [GatewayIntentBits.Guilds] });
-      await new Promise<void>((resolve, reject) => {
-        fixClient.once("ready", () => resolve());
-        fixClient.login(staffToken).catch(reject);
-      });
-      const g = await fixClient.guilds.fetch(guildId);
-      const { fixed } = await ensureTicketBotRoleHierarchy(g);
-      if (fixed) {
-        console.log("✓ Fixed ticket bot role hierarchy (verify can assign Member)");
-      }
-      fixClient.destroy();
-    }
-  } catch (err) {
-    console.warn("Could not auto-fix verify roles — run: npm run fix-verify-roles");
-  }
-}
 
 if (!inTarget && guildId) {
   console.warn(

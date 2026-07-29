@@ -410,14 +410,8 @@ async function handleTicketMessage(message: import("discord.js").Message) {
   });
 }
 
-/** Verify, tickets, purchase panels, and ticket auto-replies */
-export function registerPublicBotEvents(client: Client, guildId: string) {
-  client.on("messageCreate", (message) => {
-    handleTicketMessage(message).catch((err) =>
-      console.error("Ticket message error:", err)
-    );
-  });
-
+/** Main NeonAi bot — verify, welcome DMs */
+export function registerMainBotEvents(client: Client, guildId: string) {
   client.on("guildMemberAdd", (member) => {
     welcomeNewMember(member, guildId).catch((err) =>
       console.error("Welcome error:", err)
@@ -430,9 +424,29 @@ export function registerPublicBotEvents(client: Client, guildId: string) {
     try {
       if (interaction.isButton() && interaction.customId === "neonai_verify") {
         await handleVerify(interaction);
-        return;
       }
+    } catch (err) {
+      console.error("Verify interaction error:", err);
+      await safeReply(
+        interaction,
+        "Something went wrong. Try again or ping an admin."
+      );
+    }
+  });
+}
 
+/** NeonAi Tickets bot — open/close tickets, auto-replies, purchase tickets */
+export function registerTicketBotEvents(client: Client, _guildId: string) {
+  client.on("messageCreate", (message) => {
+    handleTicketMessage(message).catch((err) =>
+      console.error("Ticket message error:", err)
+    );
+  });
+
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.guild) return;
+
+    try {
       if (
         interaction.isButton() &&
         interaction.customId === PURCHASE_TICKET_BUTTON
@@ -510,11 +524,17 @@ export function registerPublicBotEvents(client: Client, guildId: string) {
         await closeTicket(interaction, channelId);
       }
     } catch (err) {
-      console.error("Interaction error:", err);
+      console.error("Ticket interaction error:", err);
       await safeReply(
         interaction,
         "Something went wrong. Try again or ping an admin."
       );
     }
   });
+}
+
+/** @deprecated Use registerMainBotEvents or registerTicketBotEvents */
+export function registerPublicBotEvents(client: Client, guildId: string) {
+  registerMainBotEvents(client, guildId);
+  registerTicketBotEvents(client, guildId);
 }
