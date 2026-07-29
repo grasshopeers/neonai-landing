@@ -14,6 +14,7 @@
     "staff": "tsx src/fix-verify-roles.ts && tsx src/bot.ts",
     "deploy-bots": "tsx src/configure-render.ts",
     "ticket-bot": "tsx src/ticket-bot.ts",
+    "cloud-bots": "tsx src/cloud-bots.ts",
     "repost-panels": "tsx src/repost-panels.ts",
     "cleanup-old-panels": "tsx src/cleanup-old-panels.ts",
     "set-ticket-bot-avatar": "tsx src/set-ticket-bot-avatar.ts",
