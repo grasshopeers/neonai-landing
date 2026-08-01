@@ -20,7 +20,8 @@ export function buildStaffOnboardingEmbeds() {
         "• **No DMs** with customers — keep everything in tickets",
         "• **Stripe only** — never mention other payment methods",
         "• Never ask for card numbers, OTPs, or payment screenshots",
-        "• Use **Close Ticket** or let `/deliver` auto-close after 10 minutes",
+        "• Use **Close Ticket**, `/close`, or let `/deliver` auto-close after 10 minutes",
+        "• Inactive tickets auto-close after **48 hours**",
       ].join("\n")
     )
     .setFooter(brandEmbed().footer);
@@ -30,7 +31,8 @@ export function buildStaffOnboardingEmbeds() {
     .setTitle("Slash Commands")
     .setDescription(
       [
-        "**`/stripe tier link`** — post Stripe checkout in the open ticket",
+        "**`/price`** — post license tiers and prices for the customer to choose",
+        "**`/stripe tier link`** — post Stripe checkout after they pick a tier",
         "• Use official `checkout.stripe.com` or `buy.stripe.com` links only",
         "• Match the tier the customer chose",
         "",

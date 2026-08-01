@@ -2,7 +2,7 @@
 export const LICENSE_TIERS = [
   { name: "Weekly", value: "1 Week", price: 22 },
   { name: "Monthly", value: "1 Month", price: 34 },
-  { name: "Quarterly", value: "3 Months", price: 59 },
+  { name: "Quarterly", value: "3 Months", price: 64 },
   { name: "Lifetime", value: "Lifetime", price: 95 },
 ] as const;
 

@@ -67,6 +67,18 @@ export const slashCommands = [
     .setDMPermission(false),
 
   new SlashCommandBuilder()
+    .setName("price")
+    .setDescription("Post NeonAi license tiers and prices for the customer in this ticket")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .setDMPermission(false),
+
+  new SlashCommandBuilder()
+    .setName("close")
+    .setDescription("Close the current ticket channel")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .setDMPermission(false),
+
+  new SlashCommandBuilder()
     .setName("members")
     .setDescription("List all server members (staff only)")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)

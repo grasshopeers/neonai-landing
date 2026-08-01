@@ -99,7 +99,7 @@ export const FAQ_ITEMS = [
   {
     question: "How do I purchase a license?",
     answer:
-      "Click any Get License or Purchase button on this site — you'll be redirected to our Discord server where our ticket bot opens a private channel and walks you through tier selection and payment. Current tiers: Weekly ($22), Monthly ($34), Quarterly ($59), and Lifetime ($95).",
+      "Click any Get License or Purchase button on this site — you'll be redirected to our Discord server where our ticket bot opens a private channel and walks you through tier selection and payment. Current tiers: Weekly ($22), Monthly ($34), Quarterly ($64), and Lifetime ($95).",
   },
   {
     question: "Who can buy Lifetime?",
@@ -142,7 +142,7 @@ export const PRICING_TIERS = [
   {
     id: "3_months",
     name: "Quarterly",
-    price: 59,
+    price: 64,
     highlight: true,
     tag: "Best value",
   },

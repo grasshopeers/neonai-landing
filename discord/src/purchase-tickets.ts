@@ -34,7 +34,12 @@ import {
   isLifetimeEligible,
   recordLicensePurchase,
 } from "./purchase-history.js";
-import { isLicenseTier, type LicenseTier } from "./tiers.js";
+import {
+  formatLifetimeRequirement,
+  formatTierList,
+  isLicenseTier,
+  type LicenseTier,
+} from "./tiers.js";
 import {
   clearTicketStaffHandled,
   staffTakesOverTicket,
@@ -301,6 +306,58 @@ export async function handleStripeCommand(
   await interaction.editReply({
     content: `Posted **${tier}** Stripe checkout link for <@${openerId}>.`,
   });
+}
+
+export async function handlePriceCommand(
+  interaction: ChatInputCommandInteraction
+) {
+  const channel = interaction.channel;
+  if (!channel?.isTextBased() || !isTicketChannel(channel)) {
+    await interaction.reply({
+      content: "Run `/price` inside an open ticket channel only.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const roles = resolveRoleMap(interaction.guild!);
+  if (!isStaffOnly(interaction, roles)) {
+    await interaction.reply({
+      content: "Only staff can post the price list.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+
+  const openerId = parseTicketOpenerId(channel.topic);
+  const customerLine = openerId
+    ? `<@${openerId}> — pick the license tier you want:`
+    : "Pick the license tier you want:";
+
+  const priceEmbed = new EmbedBuilder()
+    .setColor(BRAND.colors.crimson)
+    .setTitle(`${BRAND.emoji.purchase} NeonAi License Tiers`)
+    .setDescription(
+      [
+        customerLine,
+        "",
+        formatTierList(),
+        "",
+        formatLifetimeRequirement(),
+        "",
+        "Reply with your choice (**Weekly**, **Monthly**, **Quarterly**, or **Lifetime** if eligible) and staff will send your secure **Stripe** checkout link.",
+      ].join("\n")
+    )
+    .setFooter(brandEmbed().footer);
+
+  await channel.send({
+    content: openerId ? `<@${openerId}>` : undefined,
+    embeds: [priceEmbed],
+  });
+
+  await interaction.editReply({ content: "Posted license tiers in this ticket." });
 }
 
 export async function handleUnmuteCommand(

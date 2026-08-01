@@ -4,11 +4,13 @@ import { registerMainBotEvents } from "./register-public-events.js";
 import { registerSlashCommands } from "./commands.js";
 import {
   handleDeliverCommand,
+  handlePriceCommand,
   handleSetupCommand,
   handleStripeCommand,
   handleUnmuteCommand,
 } from "./purchase-tickets.js";
 import { handleMembersCommand } from "./staff-members.js";
+import { handleCloseTicketCommand } from "./ticket-close.js";
 import { startHealthServer } from "./health-server.js";
 
 const staffToken = process.env.DISCORD_BOT_TOKEN;
@@ -39,7 +41,7 @@ client.once("ready", async () => {
     try {
       await registerSlashCommands(staffToken, client.user.id, guildId);
       console.log(
-        "Slash commands: /setup, /stripe, /unmute, /deliver, /members"
+        "Slash commands: /setup, /stripe, /price, /unmute, /deliver, /close, /members"
       );
     } catch (err) {
       console.error("Failed to register slash commands:", err);
@@ -59,6 +61,10 @@ client.on("interactionCreate", async (interaction) => {
       await handleStripeCommand(interaction);
       return;
     }
+    if (interaction.commandName === "price") {
+      await handlePriceCommand(interaction);
+      return;
+    }
     if (interaction.commandName === "unmute") {
       await handleUnmuteCommand(interaction);
       return;
@@ -69,6 +75,10 @@ client.on("interactionCreate", async (interaction) => {
     }
     if (interaction.commandName === "members") {
       await handleMembersCommand(interaction);
+      return;
+    }
+    if (interaction.commandName === "close") {
+      await handleCloseTicketCommand(interaction);
       return;
     }
   } catch (err) {

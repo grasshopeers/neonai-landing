@@ -5,11 +5,13 @@ import { registerTicketBotEvents } from "./register-public-events.js";
 import { registerSlashCommands } from "./commands.js";
 import {
   handleDeliverCommand,
+  handlePriceCommand,
   handleSetupCommand,
   handleStripeCommand,
   handleUnmuteCommand,
 } from "./purchase-tickets.js";
 import { handleMembersCommand } from "./staff-members.js";
+import { handleCloseTicketCommand } from "./ticket-close.js";
 import { startHealthServer } from "./health-server.js";
 
 const mainToken = process.env.DISCORD_BOT_TOKEN;
@@ -71,9 +73,11 @@ mainClient.on("interactionCreate", async (interaction) => {
   try {
     if (interaction.commandName === "setup") await handleSetupCommand(interaction);
     else if (interaction.commandName === "stripe") await handleStripeCommand(interaction);
+    else if (interaction.commandName === "price") await handlePriceCommand(interaction);
     else if (interaction.commandName === "unmute") await handleUnmuteCommand(interaction);
     else if (interaction.commandName === "deliver") await handleDeliverCommand(interaction);
     else if (interaction.commandName === "members") await handleMembersCommand(interaction);
+    else if (interaction.commandName === "close") await handleCloseTicketCommand(interaction);
   } catch (err) {
     console.error("Staff command error:", err);
     if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
