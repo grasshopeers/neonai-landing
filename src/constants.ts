@@ -7,6 +7,10 @@ export const DISCORD_INVITE_URL = "https://discord.gg/mPD4AfwbGU";
 export const VERIFY_STATUS_URL =
   "https://neonai-license.shioneggs.workers.dev/verify-status";
 
+/** Gated build download — Worker mints 2-minute single-use proxy URL */
+export const DOWNLOAD_REQUEST_URL =
+  "https://neonai-license.shioneggs.workers.dev/download/request";
+
 export type VerifyStatusResponse = {
   valid: boolean;
   reason?: string | null;
@@ -16,6 +20,22 @@ export type VerifyStatusResponse = {
   activated?: boolean;
   revoked?: boolean;
   server_time?: string;
+};
+
+export type DownloadRequestResponse = {
+  ok: boolean;
+  reason?: string | null;
+  message?: string;
+  download_url?: string;
+  expires_at?: string;
+  expires_in?: number;
+  cooldown_seconds?: number;
+  cooldown_until?: string;
+  retry_after_seconds?: number;
+  plan?: string;
+  plan_label?: string;
+  build_id?: string | null;
+  filename?: string;
 };
 
 /** @deprecated Use DISCORD_INVITE_URL — kept as alias for community links */
@@ -32,6 +52,7 @@ export const NAV_LINKS = [
   { label: "Features", href: "#features", sectionId: "features" },
   { label: "Pricing", href: "#pricing", sectionId: "pricing" },
   { label: "Verify Key", href: "/verify", sectionId: "verify", external: true },
+  { label: "Download", href: "/download", sectionId: "download", external: true },
   { label: "Control Panel", href: "#demo", sectionId: "demo" },
   { label: "FAQ", href: "#faq", sectionId: "faq" },
   { label: "Discord", href: DISCORD_INVITE_URL, sectionId: "discord-cta" },

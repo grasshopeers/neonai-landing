@@ -106,7 +106,12 @@ export default function VerifyPage() {
             Verify your <span className="gradient-text">license key</span>
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/50">
-            Check whether a license key is valid, expired, or already in use.
+            Check whether a license key is valid, expired, or already in use. To get the
+            installer, use{" "}
+            <a href="/download" className="text-white/70 underline-offset-2 hover:text-white hover:underline">
+              Download
+            </a>
+            .
           </p>
         </motion.div>
 
