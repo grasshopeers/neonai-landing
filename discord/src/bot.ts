@@ -4,13 +4,17 @@ import { registerMainBotEvents } from "./register-public-events.js";
 import { registerSlashCommands } from "./commands.js";
 import {
   handleDeliverCommand,
+  handleKofiCommand,
   handlePriceCommand,
+  handleRemitlyCommand,
   handleSetupCommand,
   handleStripeCommand,
   handleUnmuteCommand,
 } from "./purchase-tickets.js";
 import { handleMembersCommand } from "./staff-members.js";
 import { handleCloseTicketCommand } from "./ticket-close.js";
+import { handleReviewCommand } from "./reviews.js";
+import { startNewsPromoWatcher } from "./news-promo.js";
 import { startHealthServer } from "./health-server.js";
 
 const staffToken = process.env.DISCORD_BOT_TOKEN;
@@ -32,6 +36,7 @@ const client = new Client({
 
 registerMainBotEvents(client, guildId);
 startHealthServer(() => client.isReady(), "NeonAi");
+startNewsPromoWatcher(client, guildId);
 
 client.once("ready", async () => {
   console.log(`NeonAi bot online as ${client.user?.tag}`);
@@ -41,7 +46,7 @@ client.once("ready", async () => {
     try {
       await registerSlashCommands(staffToken, client.user.id, guildId);
       console.log(
-        "Slash commands: /setup, /stripe, /price, /unmute, /deliver, /close, /members"
+        "Slash commands: /setup, /stripe, /kofi, /remitly, /price, /review, /unmute, /deliver, /close, /members"
       );
     } catch (err) {
       console.error("Failed to register slash commands:", err);
@@ -61,8 +66,20 @@ client.on("interactionCreate", async (interaction) => {
       await handleStripeCommand(interaction);
       return;
     }
+    if (interaction.commandName === "kofi") {
+      await handleKofiCommand(interaction);
+      return;
+    }
+    if (interaction.commandName === "remitly") {
+      await handleRemitlyCommand(interaction);
+      return;
+    }
     if (interaction.commandName === "price") {
       await handlePriceCommand(interaction);
+      return;
+    }
+    if (interaction.commandName === "review") {
+      await handleReviewCommand(interaction);
       return;
     }
     if (interaction.commandName === "unmute") {

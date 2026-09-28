@@ -32,6 +32,9 @@ const envVars = [
   { key: "DISCORD_TICKET_BOT_TOKEN", value: ticketToken },
   { key: "DISCORD_GUILD_ID", value: guildId },
   { key: "NEONAI_WEBSITE_URL", value: websiteUrl },
+  ...(process.env.DISCORD_OWNER_ID
+    ? [{ key: "DISCORD_OWNER_ID", value: process.env.DISCORD_OWNER_ID }]
+    : []),
 ];
 
 async function api(path: string, init?: RequestInit) {
@@ -86,11 +89,29 @@ async function upsertCloudService(ownerId: string) {
   return service;
 }
 
+async function resumeService(serviceId: string) {
+  const res = await fetch(`https://api.render.com/v1/services/${serviceId}/resume`, {
+    method: "POST",
+    headers,
+  });
+  if (res.ok || res.status === 202) {
+    console.log("Resumed neonai-bots");
+    return;
+  }
+  const text = await res.text();
+  if (res.status === 400 || res.status === 409) {
+    console.log(`Resume skipped (${res.status}): ${text.slice(0, 160)}`);
+    return;
+  }
+  throw new Error(`Resume failed (${res.status}): ${text}`);
+}
+
 async function deploy(serviceId: string) {
   await api(`/services/${serviceId}/env-vars`, {
     method: "PUT",
     body: JSON.stringify(envVars),
   });
+  await resumeService(serviceId);
   const res = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys`, {
     method: "POST",
     headers,

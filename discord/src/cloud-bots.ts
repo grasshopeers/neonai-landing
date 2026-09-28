@@ -5,13 +5,17 @@ import { registerTicketBotEvents } from "./register-public-events.js";
 import { registerSlashCommands } from "./commands.js";
 import {
   handleDeliverCommand,
+  handleKofiCommand,
   handlePriceCommand,
+  handleRemitlyCommand,
   handleSetupCommand,
   handleStripeCommand,
   handleUnmuteCommand,
 } from "./purchase-tickets.js";
 import { handleMembersCommand } from "./staff-members.js";
 import { handleCloseTicketCommand } from "./ticket-close.js";
+import { handleReviewCommand } from "./reviews.js";
+import { startNewsPromoWatcher } from "./news-promo.js";
 import { startHealthServer } from "./health-server.js";
 
 const mainToken = process.env.DISCORD_BOT_TOKEN;
@@ -52,6 +56,8 @@ function startSelfKeepAlive() {
   }, 14 * 60 * 1000);
 }
 
+startNewsPromoWatcher(mainClient, guildId);
+
 mainClient.once("ready", async () => {
   console.log(`NeonAi online as ${mainClient.user?.tag} (verify + staff)`);
   if (mainClient.user) {
@@ -73,7 +79,10 @@ mainClient.on("interactionCreate", async (interaction) => {
   try {
     if (interaction.commandName === "setup") await handleSetupCommand(interaction);
     else if (interaction.commandName === "stripe") await handleStripeCommand(interaction);
+    else if (interaction.commandName === "kofi") await handleKofiCommand(interaction);
+    else if (interaction.commandName === "remitly") await handleRemitlyCommand(interaction);
     else if (interaction.commandName === "price") await handlePriceCommand(interaction);
+    else if (interaction.commandName === "review") await handleReviewCommand(interaction);
     else if (interaction.commandName === "unmute") await handleUnmuteCommand(interaction);
     else if (interaction.commandName === "deliver") await handleDeliverCommand(interaction);
     else if (interaction.commandName === "members") await handleMembersCommand(interaction);

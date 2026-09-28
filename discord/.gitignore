@@ -1,3 +1,6 @@
 .env
 node_modules/
 data/purchase-history.json
+data/redeemed-keys.json
+data/customer-key-tags.json
+data/ticket-transcripts/

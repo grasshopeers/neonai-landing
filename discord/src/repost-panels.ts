@@ -6,6 +6,7 @@ import {
   buildTicketPanel,
   buildVerifyPanel,
 } from "./panels.js";
+import { buildRedeemPanel } from "./redeem.js";
 
 const mainToken = process.env.DISCORD_BOT_TOKEN;
 const ticketToken = process.env.DISCORD_TICKET_BOT_TOKEN;
@@ -36,6 +37,12 @@ async function postAs(token: string, label: string) {
     if (verify?.isTextBased()) {
       await verify.send(buildVerifyPanel());
       console.log(`  + verify panel in #${CHANNELS.verify}`);
+    }
+
+    const redeem = findTextChannel(guild, CHANNELS.redeem);
+    if (redeem?.isTextBased()) {
+      await redeem.send(buildRedeemPanel());
+      console.log(`  + redeem panel in #${CHANNELS.redeem}`);
     }
   }
 

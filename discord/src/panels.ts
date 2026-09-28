@@ -83,8 +83,7 @@ export function buildPurchasePanel() {
       [
         "Ready to buy? Click below to open a **private purchase ticket**.",
         "",
-        "A staff member will send your secure **Stripe** checkout link.",
-        "After payment, your license key is delivered in the ticket.",
+        "Only open this ticket if you are **sure you will buy**.",
       ].join("\n")
     )
     .setFooter(brandEmbed().footer);

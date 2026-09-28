@@ -3,7 +3,7 @@ import type { TicketCategory } from "./layout.js";
 
 const TICKET_PREFIX = "ticket-";
 
-export type TicketKind = TicketCategory | "purchase" | "unknown";
+export type TicketKind = TicketCategory | "technical" | "purchase" | "unknown";
 
 export function parseTicketOpenerId(topic: string | null | undefined) {
   return topic?.match(/<@(\d+)>/)?.[1] ?? null;
@@ -53,10 +53,15 @@ export function recordTicketClosed(userId: string) {
   closedAt.set(userId, Date.now());
 }
 
-export function checkCanOpenTicket(userId: string): {
+export function checkCanOpenTicket(
+  userId: string,
+  options?: { bypass?: boolean }
+): {
   allowed: boolean;
   reason?: string;
 } {
+  if (options?.bypass) return { allowed: true };
+
   const now = Date.now();
 
   const lastAttempt = openAttemptAt.get(userId) ?? 0;

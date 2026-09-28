@@ -39,7 +39,11 @@ function reasonMessage(data: DownloadRequestResponse): string {
     case "expired":
       return "This license has expired. Purchase a new plan on Discord.";
     case "cooldown":
-      return "Download cooldown is active. Please wait before requesting again.";
+      return "Please wait before requesting another download.";
+    case "unique_build_limit":
+      return "Download limit reached. Try again later.";
+    case "monthly_build_limit":
+      return "Download limit reached. Try again later.";
     case "rate_limited":
       return "Too many requests from your network. Wait a few minutes.";
     case "build_unavailable":
@@ -167,9 +171,7 @@ export default function DownloadPage() {
             Download your <span className="gradient-text">build</span>
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/50">
-            Enter a valid license key to receive a one-time download link. Links expire in{" "}
-            <span className="text-white/80">2 minutes</span> and downloads are limited to{" "}
-            <span className="text-white/80">once every 20 minutes</span> per key.
+            Enter your license key to download.
           </p>
         </motion.div>
 
@@ -237,18 +239,6 @@ export default function DownloadPage() {
                       {ready.plan_label || ready.plan || "—"}
                     </span>
                   </p>
-                  {ready.build_id && (
-                    <p className="text-white/70">
-                      Build: <span className="text-white">{ready.build_id}</span>
-                    </p>
-                  )}
-                  <p className="text-white/70">
-                    Link expires in:{" "}
-                    <span className="font-mono text-white">
-                      {linkAlive ? formatCountdown(linkLeft) : "expired"}
-                    </span>
-                  </p>
-
                   {linkAlive && ready.download_url ? (
                     <a
                       href={ready.download_url}
@@ -259,14 +249,9 @@ export default function DownloadPage() {
                     </a>
                   ) : (
                     <p className="text-amber-200/90">
-                      This link expired. Wait for the cooldown, then request again.
+                      This link expired. Request a new download.
                     </p>
                   )}
-
-                  <p className="text-xs text-white/40">
-                    The download is single-use and proxied through our license server. There is no
-                    permanent public build URL.
-                  </p>
                 </div>
               </div>
             </div>

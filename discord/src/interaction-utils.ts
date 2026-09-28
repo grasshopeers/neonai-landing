@@ -1,10 +1,14 @@
 import type {
   ButtonInteraction,
   GuildMember,
+  ModalSubmitInteraction,
   StringSelectMenuInteraction,
 } from "discord.js";
 
-type MemberInteraction = ButtonInteraction | StringSelectMenuInteraction;
+type MemberInteraction =
+  | ButtonInteraction
+  | StringSelectMenuInteraction
+  | ModalSubmitInteraction;
 
 export async function deferEphemeral(
   interaction: MemberInteraction

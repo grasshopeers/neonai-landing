@@ -16,6 +16,7 @@ import {
 import { BRAND, brandEmbed } from "./brand.js";
 import { relocateOpenTickets } from "./ticket-channels.js";
 import { buildStaffOnboardingEmbeds } from "./staff-guide.js";
+import { chunkWelcomeFaqEmbeds } from "./welcome-faq.js";
 import {
   CHANNELS,
   DEFAULT_DISCORD_CATEGORIES,
@@ -180,6 +181,16 @@ async function postWelcomeBanner(guild: import("discord.js").Guild) {
     files: [{ attachment: buffer, name: "neonai-discord-banner.png" }],
   });
   console.log("  + posted welcome banner");
+}
+
+async function postWelcomeFaq(guild: import("discord.js").Guild) {
+  const welcome = findTextChannel(guild, CHANNELS.welcome);
+  if (!welcome?.isTextBased()) return;
+
+  for (const embeds of chunkWelcomeFaqEmbeds()) {
+    await welcome.send({ embeds });
+  }
+  console.log("  + posted welcome FAQ");
 }
 
 async function cleanupDefaultDiscordChannels(
@@ -438,14 +449,12 @@ async function postStarterMessages(guild: import("discord.js").Guild) {
       .setTitle(`${BRAND.emoji.purchase} Purchase NeonAi`)
       .setDescription(
         [
-          "Get instant access through our secure Stripe checkout.",
+          "Only open a **purchase ticket** if you are **sure you will buy**.",
           "",
           "**After purchase:**",
-          `1. Check your email for the license key`,
-          `2. Head to **#${CHANNELS.redeem}** to activate`,
+          `1. Your license key is delivered in the ticket`,
+          `2. Head to **#${CHANNELS.redeem}** if you need Customer access`,
           `3. Open **#${CHANNELS.ticket}** if you need help`,
-          "",
-          "_Add your checkout URL in setup or post it here manually._",
         ].join("\n")
       )
       .setFooter(brandEmbed().footer);
@@ -495,26 +504,70 @@ async function postStarterMessages(guild: import("discord.js").Guild) {
     }
   }
 
-  const redeem = findTextChannel(guild, CHANNELS.redeem);
-  if (redeem?.isTextBased()) {
+  const guide = findTextChannel(guild, CHANNELS.guide);
+  if (guide?.isTextBased()) {
+    const { TUTORIAL_INSTALL_URL } = await import("./site.js");
     const embed = new EmbedBuilder()
       .setColor(BRAND.colors.crimson)
-      .setTitle(`${BRAND.emoji.redeem} Redeem License`)
+      .setTitle(`${BRAND.emoji.product} How to Install NeonAi`)
       .setDescription(
         [
-          "After your key is delivered, you automatically receive the **Customer** role.",
+          "Step-by-step install guide for customers.",
           "",
-          "1. Copy your license key from the delivery message",
-          `2. Follow the activation steps in **#${CHANNELS.neonai}**`,
-          `3. Need help? Open **#${CHANNELS.customerSupport}** → **Billing & License**`,
+          `▶ [**Watch on YouTube**](${TUTORIAL_INSTALL_URL})`,
+          "",
+          "More setup / config guides will be posted here as they’re ready.",
         ].join("\n")
       )
       .setFooter(brandEmbed().footer);
 
-    if (await postIfEmpty(redeem, { embeds: [embed] })) {
-      console.log("  + posted redeem embed");
+    if (await postIfEmpty(guide, { embeds: [embed] })) {
+      console.log("  + posted install guide");
     }
   }
+
+  const setupCh = findTextChannel(guild, CHANNELS.setup);
+  if (setupCh?.isTextBased()) {
+    const embed = new EmbedBuilder()
+      .setColor(BRAND.colors.crimson)
+      .setTitle("Setup")
+      .setDescription(
+        [
+          "Setup guidance for verified customers.",
+          "",
+          `Install first via **#${CHANNELS.guide}**, then use this channel for configs and first-run setup.`,
+        ].join("\n")
+      )
+      .setFooter(brandEmbed().footer);
+
+    if (await postIfEmpty(setupCh, { embeds: [embed] })) {
+      console.log("  + posted setup intro");
+    }
+  }
+
+  const redeem = findTextChannel(guild, CHANNELS.redeem);
+  if (redeem?.isTextBased()) {
+    const { buildRedeemPanel } = await import("./redeem.js");
+    const panel = buildRedeemPanel();
+    const recent = await redeem.messages.fetch({ limit: 10 }).catch(() => null);
+    const botId = guild.client.user?.id;
+    const hasPanel = recent?.some(
+      (m) =>
+        m.author.id === botId &&
+        m.components.some((row) =>
+          row.components.some(
+            (c) => "customId" in c && (c as { customId?: string }).customId === "neonai_redeem_open"
+          )
+        )
+    );
+    if (!hasPanel) {
+      await redeem.send(panel);
+      console.log("  + posted redeem panel");
+    }
+  }
+
+  const { postCustomerFeedbackChannelIntros } = await import("./redeem.js");
+  await postCustomerFeedbackChannelIntros(guild);
 
   const ticketChannel = findTextChannel(guild, CHANNELS.ticket);
   if (ticketChannel?.isTextBased()) {
@@ -578,6 +631,7 @@ client.once("ready", async () => {
     await postStarterMessages(guild);
     await postStaffOnboarding(guild);
     await postWelcomeBanner(guild);
+    await postWelcomeFaq(guild);
 
     console.log("\n✅ Setup complete. Run `npm run bot` to keep tickets + verify live.\n");
   } catch (err) {

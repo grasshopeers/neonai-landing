@@ -1,11 +1,4 @@
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ChannelType,
-  Client,
-  EmbedBuilder,
-} from "discord.js";
+import { ChannelType, Client, EmbedBuilder } from "discord.js";
 import { PURCHASE_TICKET_BUTTON } from "./commands.js";
 import { BRAND, brandEmbed } from "./brand.js";
 import {
@@ -13,6 +6,7 @@ import {
   TICKET_OPTIONS,
   type TicketCategory,
   findTextChannel,
+  canBypassTicketLimits,
   isStaffMember,
   resolveRoleMap,
   staffRoles,
@@ -23,13 +17,21 @@ import {
   parseTicketOpenerId,
 } from "./purchase-tickets.js";
 import {
+  handlePurchaseFlowInteraction,
+  isPurchaseChatLocked,
+  isPurchaseFlowInteraction,
+} from "./purchase-flow.js";
+import {
+  buildBillingWelcome,
+  buildCompatibilityWelcome,
+  handleSupportFlowInteraction,
+  isSupportChatLocked,
+  isSupportFlowInteraction,
+} from "./support-flow.js";
+import {
   buildTicketReply,
   classifyTicketMessage,
 } from "./ticket-intents.js";
-import {
-  isLifetimeEligible,
-  lifetimeRequirementMessage,
-} from "./purchase-history.js";
 import {
   buildTicketMuteReply,
   isTicketCustomerMuted,
@@ -51,13 +53,25 @@ import {
   checkCanOpenTicket,
   findOpenTicketForUser,
   parseTicketKind,
-  recordTicketClosed,
   recordTicketOpenAttempt,
 } from "./ticket-guard.js";
 import {
   deferEphemeral,
   resolveInteractionMember,
 } from "./interaction-utils.js";
+import {
+  closeTicketFromButton,
+  startTicketInactivitySweep,
+} from "./ticket-close.js";
+import {
+  handleRedeemInteraction,
+  isRedeemInteraction,
+} from "./redeem.js";
+import {
+  handleFeedbackInteraction,
+  isFeedbackInteraction,
+} from "./feedback.js";
+import { registerTicketLogGuard } from "./ticket-log-guard.js";
 
 function ticketLabel(category: TicketCategory) {
   return TICKET_OPTIONS.find((t) => t.id === category)?.label ?? "Support";
@@ -82,50 +96,36 @@ async function createTicket(
     return { channel: existing, duplicate: true as const };
   }
 
-  const overwrites = buildTicketOverwrites(guild, roles, userId);
+  const overwrites = buildTicketOverwrites(guild, roles, userId, {
+    customerCanSpeak: category !== "compatibility",
+  });
+  const stage = category === "compatibility" ? " · support:form" : "";
 
   const channel = await guild.channels.create({
     name: channelName,
     type: ChannelType.GuildText,
     parent: staffCategory?.id,
-    topic: `${BRAND.name} · ${ticketLabel(category)} · opened by <@${userId}>`,
+    topic: `${BRAND.name} · ${ticketLabel(category)} · opened by <@${userId}>${stage}`,
     permissionOverwrites: overwrites,
     reason: "NeonAi ticket opened",
   });
 
-  const embed = new EmbedBuilder()
-    .setColor(BRAND.colors.crimson)
-    .setTitle(`${BRAND.emoji.ticket} ${ticketLabel(category)}`)
-    .setDescription(
-      [
-        `Hey <@${userId}> — support will be with you shortly.`,
-        "",
-        "**Include when you can:**",
-        "• Your license email or order ID",
-        "• Windows version + GPU",
-        "• A short description of the issue",
-        "",
-        "Staff: use **Close Ticket** when resolved.",
-      ].join("\n")
-    )
-    .setFooter(brandEmbed().footer);
-
-  const closeRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`neonai_close_ticket:${channel.id}`)
-      .setLabel("Close Ticket")
-      .setStyle(ButtonStyle.Danger)
-      .setEmoji(BRAND.emoji.close)
-  );
+  const welcome =
+    category === "billing"
+      ? buildBillingWelcome(channel.id)
+      : buildCompatibilityWelcome(channel.id);
 
   await channel.send({
-    content:
-      staffRoles(roles).length > 0
-        ? staffRoles(roles).map((r) => `<@&${r.id}>`).join(" ")
-        : undefined,
-    embeds: [embed],
-    components: [closeRow],
+    content: `<@${userId}>`,
+    ...welcome,
   });
+
+  const { postTicketOpened } = await import("./ticket-transcripts.js");
+  await postTicketOpened(guild, {
+    channelName: channel.name,
+    openerId: userId,
+    panel: ticketLabel(category),
+  }).catch((err) => console.error("Ticket open log failed:", err));
 
   return { channel, duplicate: false as const };
 }
@@ -144,75 +144,6 @@ async function safeReply(
   } catch {
     /* stale or already-acknowledged interaction */
   }
-}
-
-async function closeTicket(
-  interaction: import("discord.js").ButtonInteraction,
-  channelId: string
-) {
-  await interaction.deferReply({ ephemeral: true });
-
-  const channel = await interaction.guild?.channels.fetch(channelId);
-  if (!channel?.isTextBased()) {
-    await interaction.editReply({ content: "Ticket channel not found." });
-    return;
-  }
-
-  const roles = resolveRoleMap(interaction.guild!);
-  const member = interaction.member;
-  const isStaff =
-    member &&
-    "roles" in member &&
-    isStaffMember(
-      roles,
-      member.roles as import("discord.js").GuildMemberRoleManager
-    );
-
-  const openerId = channel.topic?.match(/<@(\d+)>/)?.[1];
-  const isOpener = openerId && interaction.user.id === openerId;
-
-  if (!isStaff && !isOpener) {
-    await interaction.editReply({
-      content: "Only the ticket opener or staff can close this ticket.",
-    });
-    return;
-  }
-
-  await interaction.editReply({ content: "Closing ticket in 3 seconds…" });
-
-  if (openerId) recordTicketClosed(openerId);
-  clearTicketStaffHandled(channelId);
-
-  const logChannel = findTextChannel(interaction.guild!, CHANNELS.ticketLogs);
-
-  if (logChannel?.isTextBased()) {
-    const messages = await channel.messages.fetch({ limit: 50 });
-    const transcript = [...messages.values()]
-      .reverse()
-      .map((m) => `[${m.createdAt.toISOString()}] ${m.author.tag}: ${m.content}`)
-      .join("\n")
-      .slice(0, 3500);
-
-    const logEmbed = new EmbedBuilder()
-      .setColor(BRAND.colors.ruby)
-      .setTitle(`Ticket closed · #${channel.name}`)
-      .setDescription(transcript || "_No messages captured._")
-      .addFields({
-        name: "Closed by",
-        value: interaction.user.tag,
-      })
-      .setFooter(brandEmbed().footer);
-
-    await logChannel.send({ embeds: [logEmbed] });
-  }
-
-  setTimeout(async () => {
-    try {
-      await channel.delete("NeonAi ticket closed");
-    } catch {
-      /* channel may already be gone */
-    }
-  }, 3000);
 }
 
 async function handleVerify(
@@ -327,7 +258,9 @@ async function handleTicketMessage(message: import("discord.js").Message) {
 
   if (member && isStaffMember(roles, member.roles)) {
     const openerId = parseTicketOpenerId(message.channel.topic);
-    await staffTakesOverTicket(message.channel, channelId, openerId);
+    if (!isPurchaseChatLocked(message.channel) && !isSupportChatLocked(message.channel)) {
+      await staffTakesOverTicket(message.channel, channelId, openerId);
+    }
     return;
   }
 
@@ -345,6 +278,18 @@ async function handleTicketMessage(message: import("discord.js").Message) {
     message.channel.name
   );
 
+  if (ticketKind === "purchase" && isPurchaseChatLocked(message.channel)) {
+    return;
+  }
+
+  if (
+    ticketKind === "billing" ||
+    ticketKind === "compatibility" ||
+    ticketKind === "technical"
+  ) {
+    return;
+  }
+
   const { intent, tier } = classifyTicketMessage(message.content, {
     ticketKind,
     compatibilityIntroSent: compatibilityIntroSent.has(channelId),
@@ -352,21 +297,6 @@ async function handleTicketMessage(message: import("discord.js").Message) {
 
   if (intent === "compatibility_intro") {
     compatibilityIntroSent.add(channelId);
-  }
-
-  if (
-    intent === "valid_tier" &&
-    tier === "Lifetime" &&
-    !isLifetimeEligible(userId)
-  ) {
-    const embed = new EmbedBuilder()
-      .setColor(BRAND.colors.ruby)
-      .setTitle(`${BRAND.emoji.ticket} Lifetime Not Available Yet`)
-      .setDescription(lifetimeRequirementMessage(userId))
-      .setFooter(brandEmbed().footer);
-
-    await message.channel.send({ embeds: [embed] });
-    return;
   }
 
   if (shouldCountTowardTicketMute(intent, message.content, ticketKind)) {
@@ -410,8 +340,9 @@ async function handleTicketMessage(message: import("discord.js").Message) {
   });
 }
 
-/** Main NeonAi bot — verify, welcome DMs */
+/** Main NeonAi bot — verify, welcome DMs, close-ticket buttons on legacy panels */
 export function registerMainBotEvents(client: Client, guildId: string) {
+  registerTicketLogGuard(client, guildId);
   client.on("guildMemberAdd", (member) => {
     welcomeNewMember(member, guildId).catch((err) =>
       console.error("Welcome error:", err)
@@ -424,9 +355,28 @@ export function registerMainBotEvents(client: Client, guildId: string) {
     try {
       if (interaction.isButton() && interaction.customId === "neonai_verify") {
         await handleVerify(interaction);
+        return;
+      }
+
+      if (
+        interaction.isButton() &&
+        interaction.customId.startsWith("neonai_close_ticket:")
+      ) {
+        const channelId = interaction.customId.split(":")[1];
+        await closeTicketFromButton(interaction, channelId);
+        return;
+      }
+
+      if (isRedeemInteraction(interaction)) {
+        await handleRedeemInteraction(interaction);
+        return;
+      }
+
+      if (isFeedbackInteraction(interaction)) {
+        await handleFeedbackInteraction(interaction);
       }
     } catch (err) {
-      console.error("Verify interaction error:", err);
+      console.error("Main bot interaction error:", err);
       await safeReply(
         interaction,
         "Something went wrong. Try again or ping an admin."
@@ -436,7 +386,9 @@ export function registerMainBotEvents(client: Client, guildId: string) {
 }
 
 /** NeonAi Tickets bot — open/close tickets, auto-replies, purchase tickets */
-export function registerTicketBotEvents(client: Client, _guildId: string) {
+export function registerTicketBotEvents(client: Client, guildId: string) {
+  registerTicketLogGuard(client, guildId);
+  startTicketInactivitySweep(client, guildId);
   client.on("messageCreate", (message) => {
     handleTicketMessage(message).catch((err) =>
       console.error("Ticket message error:", err)
@@ -447,6 +399,16 @@ export function registerTicketBotEvents(client: Client, _guildId: string) {
     if (!interaction.guild) return;
 
     try {
+      if (isPurchaseFlowInteraction(interaction)) {
+        await handlePurchaseFlowInteraction(interaction);
+        return;
+      }
+
+      if (isSupportFlowInteraction(interaction)) {
+        await handleSupportFlowInteraction(interaction);
+        return;
+      }
+
       if (
         interaction.isButton() &&
         interaction.customId === PURCHASE_TICKET_BUTTON
@@ -488,8 +450,17 @@ export function registerTicketBotEvents(client: Client, _guildId: string) {
         }
 
         const category = interaction.values[0] as TicketCategory;
+        if (category !== "billing" && category !== "compatibility") {
+          await interaction.editReply({
+            content:
+              "That category is no longer available. Choose Billing & License or Compatibility.",
+          });
+          return;
+        }
 
-        const gate = checkCanOpenTicket(interaction.user.id);
+        const gate = checkCanOpenTicket(interaction.user.id, {
+          bypass: canBypassTicketLimits(interaction.guild, member),
+        });
         if (!gate.allowed) {
           await interaction.editReply({ content: gate.reason! });
           return;
@@ -505,13 +476,13 @@ export function registerTicketBotEvents(client: Client, _guildId: string) {
 
         if (result.duplicate) {
           await interaction.editReply({
-            content: `You already have an open ticket: ${result.channel}`,
+            content: `You already have an open ticket: ${result.channel} (\`#${result.channel.name}\`)`,
           });
           return;
         }
 
         await interaction.editReply({
-          content: `Ticket opened: ${result.channel}`,
+          content: `Ticket opened: ${result.channel} (\`#${result.channel.name}\`)`,
         });
         return;
       }
@@ -521,7 +492,17 @@ export function registerTicketBotEvents(client: Client, _guildId: string) {
         interaction.customId.startsWith("neonai_close_ticket:")
       ) {
         const channelId = interaction.customId.split(":")[1];
-        await closeTicket(interaction, channelId);
+        await closeTicketFromButton(interaction, channelId);
+        return;
+      }
+
+      if (isRedeemInteraction(interaction)) {
+        await handleRedeemInteraction(interaction);
+        return;
+      }
+
+      if (isFeedbackInteraction(interaction)) {
+        await handleFeedbackInteraction(interaction);
       }
     } catch (err) {
       console.error("Ticket interaction error:", err);

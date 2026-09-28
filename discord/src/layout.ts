@@ -2,12 +2,13 @@ import {
   ChannelType,
   PermissionFlagsBits,
   type Guild,
+  type GuildMember,
   type GuildMemberRoleManager,
   type Role,
 } from "discord.js";
 import { BRAND } from "./brand.js";
 
-export type TicketCategory = "technical" | "billing" | "compatibility";
+export type TicketCategory = "billing" | "compatibility";
 
 export const TICKET_OPTIONS: {
   id: TicketCategory;
@@ -16,21 +17,15 @@ export const TICKET_OPTIONS: {
   emoji: string;
 }[] = [
   {
-    id: "technical",
-    label: "Technical Support",
-    description: "Install, configs, performance, or general product help.",
-    emoji: "🛠️",
-  },
-  {
     id: "billing",
     label: "Billing & License",
-    description: "Activation keys, Stripe checkout, or refund questions.",
+    description: "Payments, license keys, or refund questions.",
     emoji: "💳",
   },
   {
     id: "compatibility",
     label: "Compatibility",
-    description: "Hardware, games, or setup isolation questions.",
+    description: "Hardware, games, or setup questions.",
     emoji: "🖥️",
   },
 ];
@@ -41,19 +36,29 @@ export const CHANNELS = {
   tos: "┃tos",
   welcome: "┃welcome",
   news: "┃news",
+  updates: "┃updates",
   purchase: "┃purchase",
   media: "┃media",
   reviews: "┃reviews",
   neonai: "┃neonai",
   featuresList: "┃features-list",
   extraHardware: "┃extra-hardware",
-  updates: "┃updates",
+  changelogs: "┃changelogs",
+  setup: "┃setup",
+  guide: "┃guide",
   ticket: "┃ticket",
   customerSupport: "┃customer-support",
   redeem: "┃redeem",
+  reviewUs: "┃review-us",
+  reportBug: "┃report-a-bug",
+  reportBan: "┃report-a-ban",
+  ticketLogs: "┃ticket-logs",
+  redeemRequests: "┃redeem-requests",
+  customerReviews: "┃customer-reviews",
+  bugReports: "┃bug-reports",
+  banReports: "┃ban-reports",
   chat: "┃chat",
   voice: "┃voice",
-  ticketLogs: "┃ticket-logs",
   members: "┃members",
   staffGuide: "┃staff-guide",
   staffChat: "┃staff-chat",
@@ -74,7 +79,20 @@ export const ROLES = [
     name: "Management",
     color: BRAND.colors.glow,
     hoist: true,
-    permissions: [PermissionFlagsBits.Administrator],
+    // No Administrator — channel overwrites (e.g. ticket-logs) must stick.
+    // Server owner keeps full power outside roles.
+    permissions: [
+      PermissionFlagsBits.ManageGuild,
+      PermissionFlagsBits.ManageChannels,
+      PermissionFlagsBits.ManageRoles,
+      PermissionFlagsBits.ManageNicknames,
+      PermissionFlagsBits.KickMembers,
+      PermissionFlagsBits.BanMembers,
+      PermissionFlagsBits.ModerateMembers,
+      PermissionFlagsBits.ManageMessages,
+      PermissionFlagsBits.ViewAuditLog,
+      PermissionFlagsBits.MentionEveryone,
+    ],
     mentionable: true,
   },
   {
@@ -136,8 +154,8 @@ type ChannelDef = {
   customerOnly?: boolean;
   memberOnly?: boolean;
   verifyChannel?: boolean;
-  /** Staff open this channel to see the full sidebar member list */
-  staffMemberList?: boolean;
+  /** Staff can view only — no send/delete (survives Manage Messages; not Administrator) */
+  immutableStaffLogs?: boolean;
 };
 
 type CategoryDef = {
@@ -175,9 +193,16 @@ export const SERVER_LAYOUT: CategoryDef[] = [
         memberOnly: true,
       },
       {
+        name: CHANNELS.updates,
+        type: ChannelType.GuildText,
+        topic: "Product and server updates.",
+        readOnly: true,
+        memberOnly: true,
+      },
+      {
         name: CHANNELS.news,
         type: ChannelType.GuildText,
-        topic: "Major announcements and product news.",
+        topic: "Major announcements and important notices.",
         readOnly: true,
         memberOnly: true,
       },
@@ -212,26 +237,61 @@ export const SERVER_LAYOUT: CategoryDef[] = [
         type: ChannelType.GuildText,
         topic: "Overview of NeonAi — external AI aim assistant.",
         readOnly: true,
-        customerOnly: true,
+        staffOnly: true,
       },
       {
         name: CHANNELS.featuresList,
         type: ChannelType.GuildText,
         topic: "Feature breakdown: aim assist, humanization, configs.",
         readOnly: true,
-        customerOnly: true,
+        staffOnly: true,
       },
       {
         name: CHANNELS.extraHardware,
         type: ChannelType.GuildText,
         topic: "Optional external hardware and isolation setups.",
         readOnly: true,
+        staffOnly: true,
+      },
+      {
+        name: CHANNELS.changelogs,
+        type: ChannelType.GuildText,
+        topic: "Build updates, model releases, and patch notes.",
+        readOnly: true,
+        staffOnly: true,
+      },
+      {
+        name: CHANNELS.setup,
+        type: ChannelType.GuildText,
+        topic: "Setup, configs, and first-run guidance — customers only.",
+        readOnly: true,
         customerOnly: true,
       },
       {
-        name: CHANNELS.updates,
+        name: CHANNELS.guide,
         type: ChannelType.GuildText,
-        topic: "Build updates, model releases, and patch notes.",
+        topic: "How to install NeonAi and usage guides — customers only.",
+        readOnly: true,
+        customerOnly: true,
+      },
+      {
+        name: CHANNELS.reviewUs,
+        type: ChannelType.GuildText,
+        topic: "Submit a private review — opens a form for staff only.",
+        readOnly: true,
+        customerOnly: true,
+      },
+      {
+        name: CHANNELS.reportBug,
+        type: ChannelType.GuildText,
+        topic: "Submit a private bug report — opens a form for staff only.",
+        readOnly: true,
+        customerOnly: true,
+      },
+      {
+        name: CHANNELS.reportBan,
+        type: ChannelType.GuildText,
+        topic: "Submit a private ban report — opens a form for staff only.",
         readOnly: true,
         customerOnly: true,
       },
@@ -257,26 +317,15 @@ export const SERVER_LAYOUT: CategoryDef[] = [
       {
         name: CHANNELS.redeem,
         type: ChannelType.GuildText,
-        topic: "Redeem your license key after purchase.",
+        topic: "Verify your customer key to unlock Customer access.",
         readOnly: true,
-        customerOnly: true,
+        memberOnly: true,
       },
       {
         name: CHANNELS.ticketLogs,
         type: ChannelType.GuildText,
-        topic: "Closed ticket transcripts for staff.",
-        staffOnly: true,
-      },
-      {
-        name: CHANNELS.chat,
-        type: ChannelType.GuildText,
-        topic: "Customer lounge — paid members only.",
-        customerOnly: true,
-      },
-      {
-        name: CHANNELS.voice,
-        type: ChannelType.GuildVoice,
-        customerOnly: true,
+        topic: "Closed ticket transcripts — view only for staff; deletes restricted.",
+        immutableStaffLogs: true,
       },
     ],
   },
@@ -286,9 +335,44 @@ export const SERVER_LAYOUT: CategoryDef[] = [
       {
         name: CHANNELS.members,
         type: ChannelType.GuildText,
-        topic: "Staff: open this channel to view the full server member list.",
+        topic: "Staff-only channel. Use /members for the full member list.",
         readOnly: true,
-        staffMemberList: true,
+        staffOnly: true,
+      },
+      {
+        name: CHANNELS.redeemRequests,
+        type: ChannelType.GuildText,
+        topic: "Pending license redeem requests — Accept or Deny.",
+        staffOnly: true,
+      },
+      {
+        name: CHANNELS.customerReviews,
+        type: ChannelType.GuildText,
+        topic: "Private customer reviews submitted via #┃review-us.",
+        staffOnly: true,
+      },
+      {
+        name: CHANNELS.bugReports,
+        type: ChannelType.GuildText,
+        topic: "Private bug reports submitted via #┃report-a-bug.",
+        staffOnly: true,
+      },
+      {
+        name: CHANNELS.banReports,
+        type: ChannelType.GuildText,
+        topic: "Private ban reports submitted via #┃report-a-ban.",
+        staffOnly: true,
+      },
+      {
+        name: CHANNELS.chat,
+        type: ChannelType.GuildText,
+        topic: "Staff chat only.",
+        staffOnly: true,
+      },
+      {
+        name: CHANNELS.voice,
+        type: ChannelType.GuildVoice,
+        staffOnly: true,
       },
       {
         name: CHANNELS.staffGuide,
@@ -367,6 +451,15 @@ export function isStaffMember(
   memberRoles: GuildMemberRoleManager
 ) {
   return staffRoles(roles).some((r) => memberRoles.cache.has(r.id));
+}
+
+/** Owner / Administrator / named staff roles — skip ticket open cooldowns */
+export function canBypassTicketLimits(guild: Guild, member: GuildMember) {
+  const ownerId = process.env.DISCORD_OWNER_ID;
+  if (ownerId && member.id === ownerId) return true;
+  if (member.id === guild.ownerId) return true;
+  if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
+  return isStaffMember(resolveRoleMap(guild), member.roles);
 }
 
 export async function grantCustomerAccess(
@@ -472,54 +565,95 @@ export function channelOverwrites(
     PermissionFlagsBits.MoveMembers,
   ];
 
-  if (channel.staffMemberList) {
+  if (channel.verifyChannel) {
+    overwrites.push({
+      id: everyone.id,
+      allow: [
+        ...memberRead,
+        PermissionFlagsBits.CreatePrivateThreads,
+        PermissionFlagsBits.SendMessagesInThreads,
+      ],
+      deny: [
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.CreatePublicThreads,
+      ],
+    });
+    if (roles.member) {
+      overwrites.push({
+        id: roles.member.id,
+        deny: [PermissionFlagsBits.ViewChannel],
+      });
+    }
+    if (roles.customer) {
+      overwrites.push({
+        id: roles.customer.id,
+        deny: [PermissionFlagsBits.ViewChannel],
+      });
+    }
+    addStaffAccess(overwrites, roles, [
+      PermissionFlagsBits.ViewChannel,
+      PermissionFlagsBits.ReadMessageHistory,
+      PermissionFlagsBits.SendMessages,
+      PermissionFlagsBits.SendMessagesInThreads,
+      PermissionFlagsBits.ManageThreads,
+      PermissionFlagsBits.CreatePrivateThreads,
+    ]);
+    addBotAccess(guild, overwrites);
+    const botRoleId = guild.members.me?.roles.botRole?.id;
+    if (botRoleId) {
+      const bot = overwrites.find((overwrite) => overwrite.id === botRoleId);
+      if (bot) {
+        bot.allow = [
+          ...(bot.allow ?? []),
+          PermissionFlagsBits.ManageThreads,
+          PermissionFlagsBits.CreatePrivateThreads,
+          PermissionFlagsBits.SendMessagesInThreads,
+        ];
+      }
+    }
+    return overwrites;
+  }
+
+  if (channel.immutableStaffLogs) {
     overwrites.push({
       id: everyone.id,
       deny: [PermissionFlagsBits.ViewChannel],
     });
-    const viewOnly = [
+    const staffViewOnly = [
       PermissionFlagsBits.ViewChannel,
       PermissionFlagsBits.ReadMessageHistory,
     ];
-    if (roles.member) {
+    const staffDenyMutate = [
+      PermissionFlagsBits.SendMessages,
+      PermissionFlagsBits.ManageMessages,
+      PermissionFlagsBits.AttachFiles,
+      PermissionFlagsBits.AddReactions,
+      PermissionFlagsBits.CreatePublicThreads,
+      PermissionFlagsBits.CreatePrivateThreads,
+      PermissionFlagsBits.SendMessagesInThreads,
+      PermissionFlagsBits.ManageChannels,
+    ];
+    for (const role of staffRoles(roles)) {
       overwrites.push({
-        id: roles.member.id,
-        allow: viewOnly,
-        deny: denyPost,
+        id: role.id,
+        allow: staffViewOnly,
+        deny: staffDenyMutate,
       });
     }
-    if (roles.customer) {
+    const botRoleId = guild.members.me?.roles.botRole?.id;
+    if (botRoleId) {
       overwrites.push({
-        id: roles.customer.id,
-        allow: viewOnly,
-        deny: denyPost,
+        id: botRoleId,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ReadMessageHistory,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.AttachFiles,
+        ],
+        deny: [PermissionFlagsBits.ManageMessages],
       });
     }
-    addStaffAccess(overwrites, roles, staffWrite);
-    addBotAccess(guild, overwrites);
-    return overwrites;
-  }
-
-  if (channel.verifyChannel) {
-    overwrites.push({
-      id: everyone.id,
-      allow: memberRead,
-      deny: [PermissionFlagsBits.SendMessages],
-    });
-    if (roles.member) {
-      overwrites.push({
-        id: roles.member.id,
-        deny: [PermissionFlagsBits.ViewChannel],
-      });
-    }
-    if (roles.customer) {
-      overwrites.push({
-        id: roles.customer.id,
-        deny: [PermissionFlagsBits.ViewChannel],
-      });
-    }
-    addStaffAccess(overwrites, roles, [PermissionFlagsBits.ViewChannel]);
-    addBotAccess(guild, overwrites);
     return overwrites;
   }
 

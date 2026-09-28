@@ -5,11 +5,27 @@ import {
 } from "discord.js";
 import { BRAND } from "./brand.js";
 import { CHANNELS, isStaffMember, resolveRoleMap } from "./layout.js";
+import { getCustomerKeyTag } from "./customer-keys.js";
 
 type MemberBucket = {
   label: string;
   members: GuildMember[];
 };
+
+function formatMemberLine(member: GuildMember) {
+  const status = member.presence?.status ?? "offline";
+  const icon =
+    status === "online"
+      ? "🟢"
+      : status === "idle"
+        ? "🟡"
+        : status === "dnd"
+          ? "🔴"
+          : "⚫";
+  const tag = getCustomerKeyTag(member.id);
+  const keyBit = tag ? ` ·\`${tag.last4}\`` : "";
+  return `${icon} ${member.user.tag}${keyBit} (\`${member.id}\`)`;
+}
 
 function bucketMembers(
   members: GuildMember[],
@@ -49,19 +65,6 @@ function bucketMembers(
   }
 
   return buckets.filter((b) => b.members.length > 0);
-}
-
-function formatMemberLine(member: GuildMember) {
-  const status = member.presence?.status ?? "offline";
-  const icon =
-    status === "online"
-      ? "🟢"
-      : status === "idle"
-        ? "🟡"
-        : status === "dnd"
-          ? "🔴"
-          : "⚫";
-  return `${icon} ${member.user.tag} (\`${member.id}\`)`;
 }
 
 function chunkLines(lines: string[], maxLen = 1000) {
@@ -119,7 +122,7 @@ export async function handleMembersCommand(
       [
         `**${humans.length}** members (excluding bots)`,
         "",
-        `Open **#${CHANNELS.members}** to see the full sidebar list while moderating.`,
+        `Use **\`/members\`** anytime for the full roster.`,
         `Check **#${CHANNELS.verify}** for unverified joins.`,
       ].join("\n")
     );

@@ -7,7 +7,7 @@ export const DISCORD_INVITE_URL = "https://discord.gg/mPD4AfwbGU";
 export const VERIFY_STATUS_URL =
   "https://neonai-license.shioneggs.workers.dev/verify-status";
 
-/** Gated build download — Worker mints 2-minute single-use proxy URL */
+/** Gated unique-exe download — Worker stamps + mints a 2-minute single-use proxy URL */
 export const DOWNLOAD_REQUEST_URL =
   "https://neonai-license.shioneggs.workers.dev/download/request";
 
@@ -35,6 +35,7 @@ export type DownloadRequestResponse = {
   plan?: string;
   plan_label?: string;
   build_id?: string | null;
+  unique_build_id?: string | null;
   filename?: string;
 };
 
@@ -120,12 +121,12 @@ export const FAQ_ITEMS = [
   {
     question: "How do I purchase a license?",
     answer:
-      "Click any Get License or Purchase button on this site — you'll be redirected to our Discord server where our ticket bot opens a private channel and walks you through tier selection and payment. Current tiers: Weekly ($22), Monthly ($34), Quarterly ($64), and Lifetime ($95).",
+      "Click any Get License or Purchase button on this site — you'll be redirected to our Discord server where our ticket bot opens a private channel and walks you through tier selection and payment. Current tiers: Weekly ($22), Monthly ($34), Quarterly ($64), and Lifetime ($98).",
   },
   {
     question: "Who can buy Lifetime?",
     answer:
-      "Lifetime is available only if you've previously purchased at least 3 months worth of licenses (for example, one Quarterly license, or multiple shorter tiers that add up to 3+ months). New customers should start with Weekly, Monthly, or Quarterly first.",
+      "Anyone. Lifetime is a one-time $98 purchase. There is no prior-license requirement.",
   },
   {
     question: "What is the return policy?",
@@ -170,10 +171,10 @@ export const PRICING_TIERS = [
   {
     id: "lifetime",
     name: "Lifetime",
-    price: 95,
+    price: 98,
     highlight: false,
-    tag: "Requires 3 mo. prior",
-    note: "Available only after 3+ months of prior license purchases.",
+    tag: "One-time purchase",
+    note: "One-time $98 purchase. No prior license required.",
   },
 ];
 

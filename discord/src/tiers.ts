@@ -3,7 +3,7 @@ export const LICENSE_TIERS = [
   { name: "Weekly", value: "1 Week", price: 22 },
   { name: "Monthly", value: "1 Month", price: 34 },
   { name: "Quarterly", value: "3 Months", price: 64 },
-  { name: "Lifetime", value: "Lifetime", price: 95 },
+  { name: "Lifetime", value: "Lifetime", price: 98 },
 ] as const;
 
 export type LicenseTier = (typeof LICENSE_TIERS)[number]["value"];
@@ -30,7 +30,7 @@ export function formatTierList() {
   return LICENSE_TIERS.map((tier) => {
     const line = `• **${tier.name}** — $${tier.price}`;
     if (tier.value === "Lifetime") {
-      return `${line} _(requires 3+ months of prior licenses)_`;
+      return `${line} _(one-time purchase)_`;
     }
     return line;
   }).join("\n");
@@ -45,5 +45,5 @@ export function getTierDisplayName(tier: LicenseTier) {
 }
 
 export function formatLifetimeRequirement() {
-  return "Lifetime requires **at least 3 months** of prior license purchases (e.g. one **Quarterly** license, or multiple shorter tiers totaling 3+ months).";
+  return "Lifetime is a **one-time $98** purchase.";
 }

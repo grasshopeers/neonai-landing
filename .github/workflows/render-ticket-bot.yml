@@ -1,0 +1,34 @@
+name: Render ticket bot
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - discord/**
+      - render.yaml
+      - .github/workflows/render-ticket-bot.yml
+
+jobs:
+  configure:
+    if: ${{ secrets.RENDER_API_KEY != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Configure Render worker
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_TICKET_BOT_TOKEN: ${{ secrets.DISCORD_TICKET_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_OWNER_ID: ${{ secrets.DISCORD_OWNER_ID }}
+          NEONAI_WEBSITE_URL: https://neonai-official.netlify.app
+        working-directory: discord
+        run: |
+          npm ci
+          npm run configure-render

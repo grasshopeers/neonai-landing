@@ -41,6 +41,32 @@ export const slashCommands = [
     .setDMPermission(false),
 
   new SlashCommandBuilder()
+    .setName("kofi")
+    .setDescription("Send the Ko-fi tip link with the amount for a license tier")
+    .addStringOption((option) =>
+      option
+        .setName("tier")
+        .setDescription("License tier the customer should tip for")
+        .setRequired(true)
+        .addChoices(...tierChoices)
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .setDMPermission(false),
+
+  new SlashCommandBuilder()
+    .setName("remitly")
+    .setDescription("Send Remitly bank-deposit details with the amount for a license tier")
+    .addStringOption((option) =>
+      option
+        .setName("tier")
+        .setDescription("License tier the customer should send payment for")
+        .setRequired(true)
+        .addChoices(...tierChoices)
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .setDMPermission(false),
+
+  new SlashCommandBuilder()
     .setName("unmute")
     .setDescription("Restore the customer's ability to send messages in this ticket")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
@@ -69,6 +95,32 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("price")
     .setDescription("Post NeonAi license tiers and prices for the customer in this ticket")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .setDMPermission(false),
+
+  new SlashCommandBuilder()
+    .setName("review")
+    .setDescription("Post a customer review in #┃reviews (profiles stay private)")
+    .addUserOption((option) =>
+      option
+        .setName("customer")
+        .setDescription("Customer who left the review")
+        .setRequired(true)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("text")
+        .setDescription("Review text — staff <@mentions> stay clickable; customer is private")
+        .setRequired(true)
+        .setMaxLength(1500)
+    )
+    .addIntegerOption((option) =>
+      option
+        .setName("stars")
+        .setDescription("Star rating 1–5 (default 5)")
+        .setMinValue(1)
+        .setMaxValue(5)
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
     .setDMPermission(false),
 
