@@ -28,6 +28,7 @@ jobs:
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           DISCORD_OWNER_ID: ${{ secrets.DISCORD_OWNER_ID }}
           NEONAI_WEBSITE_URL: https://neonai-official.netlify.app
+          PAYPAL_PAYMENT_URL: https://www.paypal.com/paypalme/Aasimzaz
         working-directory: discord
         run: |
           npm ci

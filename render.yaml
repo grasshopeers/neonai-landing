@@ -19,3 +19,5 @@ services:
         sync: false
       - key: NEONAI_WEBSITE_URL
         value: https://neonai-official.netlify.app
+      - key: PAYPAL_PAYMENT_URL
+        value: https://www.paypal.com/paypalme/Aasimzaz

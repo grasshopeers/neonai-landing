@@ -6,8 +6,9 @@ export const NEONAI_SITE_URL =
 export const KOFI_TIP_URL =
   process.env.KOFI_TIP_URL ?? "https://ko-fi.com/drowndeer";
 
-/** PayPal checkout /.me link — set PAYPAL_PAYMENT_URL in discord/.env */
-export const PAYPAL_PAYMENT_URL = process.env.PAYPAL_PAYMENT_URL ?? "";
+/** PayPal.me link posted in purchase tickets */
+export const PAYPAL_PAYMENT_URL =
+  process.env.PAYPAL_PAYMENT_URL ?? "https://www.paypal.com/paypalme/Aasimzaz";
 
 /** Remitly bank-deposit details (UAE / FAB) */
 export const REMITLY_PAYMENT = {

@@ -6,6 +6,8 @@ const ticketToken = process.env.DISCORD_TICKET_BOT_TOKEN;
 const guildId = process.env.DISCORD_GUILD_ID;
 const websiteUrl =
   process.env.NEONAI_WEBSITE_URL ?? "https://neonai-official.netlify.app";
+const paypalUrl =
+  process.env.PAYPAL_PAYMENT_URL ?? "https://www.paypal.com/paypalme/Aasimzaz";
 
 if (!apiKey) {
   console.error("Missing RENDER_API_KEY");
@@ -32,6 +34,7 @@ const envVars = [
   { key: "DISCORD_TICKET_BOT_TOKEN", value: ticketToken },
   { key: "DISCORD_GUILD_ID", value: guildId },
   { key: "NEONAI_WEBSITE_URL", value: websiteUrl },
+  { key: "PAYPAL_PAYMENT_URL", value: paypalUrl },
   ...(process.env.DISCORD_OWNER_ID
     ? [{ key: "DISCORD_OWNER_ID", value: process.env.DISCORD_OWNER_ID }]
     : []),
