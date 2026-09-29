@@ -878,7 +878,7 @@ async function handleTierChoice(
   ]);
   await alertStaff(
     channel,
-    `<@${openerId}> selected **${getTierDisplayName(tier)}** ($${getTierPrice(tier)}). Payment buttons are in the ticket.`
+    `<@${openerId}> selected **${getTierDisplayName(tier)}** ($${getTierPrice(tier)}) in <#${channel.id}>. Payment buttons are in that ticket. If those buttons do nothing, run **/kofi**, **/remitly**, or **/unmute** there.`
   );
 }
 
@@ -955,11 +955,26 @@ async function handlePayMethod(interaction: ButtonInteraction) {
     });
   } catch (err) {
     console.error("Payment details failed:", err);
+    await interaction.message
+      .edit({ components: [buildPayButtonRow(tier)] })
+      .catch(() => undefined);
+    await channel.send({
+      content: `<@${openerId}>`,
+      embeds: [
+        new EmbedBuilder()
+          .setColor(BRAND.colors.ruby)
+          .setTitle(`${BRAND.emoji.purchase} Please choose a payment method again`)
+          .setDescription(
+            "That payment option did not go through. Tap it again. Staff have been notified."
+          )
+          .setFooter(brandEmbed().footer),
+      ],
+    });
     await alertStaff(
       channel,
-      `<@${openerId}> picked **${method}** for **${getTierDisplayName(tier)}**, but the payment card did not post.`
+      `<@${openerId}> picked **${method}** for **${getTierDisplayName(tier)}** in <#${channel.id}>, but the payment card did not post. If they stay stuck, run **/kofi**, **/remitly**, or **/unmute** in that ticket.`
     );
-    throw err;
+    return;
   }
 
   await disableCustomIds(interaction.message, payIds);
@@ -984,7 +999,7 @@ async function handlePayMethod(interaction: ButtonInteraction) {
             ? [
                 `<@${openerId}> — after you pay, send your screenshot in this ticket.`,
                 "",
-                "If the message box is still locked, staff have an **Allow messages** button in this ticket.",
+                "If the message box is still locked, staff can tap **Allow messages** in **#┃staff-chat**.",
               ].join("\n")
             : [
                 `<@${openerId}> — after you pay, staff need to enable messages in this ticket.`,

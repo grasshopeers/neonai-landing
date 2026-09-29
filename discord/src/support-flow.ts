@@ -53,7 +53,7 @@ export function isSupportChatLocked(channel: unknown) {
   const c = channel as { name?: string; topic?: string | null };
   if (parseTicketKind(c.topic, c.name) !== "compatibility") return false;
   const stage = parseSupportStage(c.topic);
-  return stage !== SUPPORT_STAGE.open;
+  return stage === SUPPORT_STAGE.form || stage === SUPPORT_STAGE.review;
 }
 
 export function buildBillingWelcome(channelId: string) {
@@ -524,6 +524,20 @@ async function handleCompatibilityDeny(interaction: ButtonInteraction) {
   await interaction.deferUpdate();
   await disableCustomIds(interaction.message, [COMPAT_APPROVE, COMPAT_DENY]);
   await setSupportStage(channel, openerId, "Compatibility", SUPPORT_STAGE.denied);
+  await unlockCustomerInTicket(channel, openerId);
+
+  await channel.send({
+    content: `<@${openerId}>`,
+    embeds: [
+      new EmbedBuilder()
+        .setColor(BRAND.colors.ruby)
+        .setTitle("Compatibility not approved")
+        .setDescription(
+          `<@${openerId}> — this request was not approved. A staff member will follow up in this ticket.`
+        )
+        .setFooter(brandEmbed().footer),
+    ],
+  });
 
   const thread =
     interaction.channel &&
@@ -538,7 +552,7 @@ async function handleCompatibilityDeny(interaction: ButtonInteraction) {
           .setColor(BRAND.colors.ruby)
           .setTitle("Denied")
           .setDescription(
-            "Reply in the ticket and explain why this was not approved. The customer does not see this thread."
+            "The customer can type in the ticket now. Reply there and explain why this was not approved."
           )
           .setFooter(brandEmbed().footer),
       ],
