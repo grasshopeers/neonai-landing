@@ -67,6 +67,19 @@ export const slashCommands = [
     .setDMPermission(false),
 
   new SlashCommandBuilder()
+    .setName("paypal")
+    .setDescription("Send the PayPal.me link with the amount for a license tier")
+    .addStringOption((option) =>
+      option
+        .setName("tier")
+        .setDescription("License tier the customer should pay for")
+        .setRequired(true)
+        .addChoices(...tierChoices)
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .setDMPermission(false),
+
+  new SlashCommandBuilder()
     .setName("unmute")
     .setDescription("Restore the customer's ability to send messages in this ticket")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)

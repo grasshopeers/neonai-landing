@@ -40,7 +40,7 @@ import {
   deferEphemeral,
   resolveInteractionMember,
 } from "./interaction-utils.js";
-import { KOFI_TIP_URL, REMITLY_PAYMENT } from "./site.js";
+import { KOFI_TIP_URL, PAYPAL_PAYMENT_URL, REMITLY_PAYMENT } from "./site.js";
 import {
   buildHardwareFormRow,
   markPurchaseDelivered,
@@ -462,6 +462,97 @@ export async function handleRemitlyCommand(
 
   await interaction.editReply({
     content: `Posted Remitly bank details for **${tier}** ($${price}) to <@${openerId}>.`,
+  });
+}
+
+export async function handlePaypalCommand(
+  interaction: ChatInputCommandInteraction
+) {
+  const channel = interaction.channel;
+  if (!channel?.isTextBased() || !isTicketChannel(channel)) {
+    await interaction.reply({
+      content: "Run `/paypal` inside an open ticket channel only.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const roles = resolveRoleMap(interaction.guild!);
+  if (!isStaffOnly(interaction, roles)) {
+    await interaction.reply({
+      content: "Only staff can send PayPal payment links.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const tierRaw = interaction.options.getString("tier", true);
+  if (!isLicenseTier(tierRaw)) {
+    await interaction.reply({ content: "Invalid tier selection.", ephemeral: true });
+    return;
+  }
+
+  const tier: LicenseTier = tierRaw;
+  const price = getTierPrice(tier);
+  const openerId = parseTicketOpenerId(channel.topic);
+
+  if (!openerId) {
+    await interaction.reply({
+      content: "Could not find the customer for this ticket.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  if (price == null) {
+    await interaction.reply({
+      content: "Could not resolve the price for that tier.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+
+  const paypalEmbed = new EmbedBuilder()
+    .setColor(BRAND.colors.crimson)
+    .setTitle(`${BRAND.emoji.purchase} PayPal Payment`)
+    .setDescription(
+      [
+        `<@${openerId}> — please complete payment for your **${getTierDisplayName(tier)}** license.`,
+        "",
+        `💰 **Amount:** **$${price} USD**`,
+        `🔗 [**Pay with PayPal**](${PAYPAL_PAYMENT_URL})`,
+        "",
+        "Send a screenshot of the payment in this ticket. Your license key will be sent here once staff confirms it.",
+      ].join("\n")
+    )
+    .setFooter(brandEmbed().footer);
+
+  await channel.send({ content: `<@${openerId}>`, embeds: [paypalEmbed] });
+  await unlockPurchaseCustomer(channel, openerId);
+
+  const logChannel = findTextChannel(interaction.guild!, CHANNELS.ticketLogs);
+  if (logChannel) {
+    const customer = await interaction.client.users
+      .fetch(openerId)
+      .catch(() => null);
+    await logChannel.send({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(BRAND.colors.ruby)
+          .setTitle("PayPal Link Sent")
+          .setDescription(
+            `**${interaction.user.tag}** sent the PayPal link (**${tier}** · $${price}) to **${customer?.tag ?? openerId}**.`
+          )
+          .addFields({ name: "Ticket", value: `#${channel.name}`, inline: true })
+          .setFooter(brandEmbed().footer),
+      ],
+    });
+  }
+
+  await interaction.editReply({
+    content: `Posted PayPal link for **${tier}** ($${price}) to <@${openerId}>.`,
   });
 }
 

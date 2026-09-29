@@ -5,6 +5,7 @@ import { registerSlashCommands } from "./commands.js";
 import {
   handleDeliverCommand,
   handleKofiCommand,
+  handlePaypalCommand,
   handlePriceCommand,
   handleRemitlyCommand,
   handleSetupCommand,
@@ -46,7 +47,7 @@ client.once("ready", async () => {
     try {
       await registerSlashCommands(staffToken, client.user.id, guildId);
       console.log(
-        "Slash commands: /setup, /stripe, /kofi, /remitly, /price, /review, /unmute, /deliver, /close, /members"
+        "Slash commands: /setup, /stripe, /kofi, /paypal, /remitly, /price, /review, /unmute, /deliver, /close, /members"
       );
     } catch (err) {
       console.error("Failed to register slash commands:", err);
@@ -68,6 +69,10 @@ client.on("interactionCreate", async (interaction) => {
     }
     if (interaction.commandName === "kofi") {
       await handleKofiCommand(interaction);
+      return;
+    }
+    if (interaction.commandName === "paypal") {
+      await handlePaypalCommand(interaction);
       return;
     }
     if (interaction.commandName === "remitly") {

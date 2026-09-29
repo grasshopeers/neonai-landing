@@ -878,7 +878,7 @@ async function handleTierChoice(
   ]);
   await alertStaff(
     channel,
-    `<@${openerId}> selected **${getTierDisplayName(tier)}** ($${getTierPrice(tier)}) in <#${channel.id}>. Payment buttons are in that ticket. If those buttons do nothing, run **/kofi**, **/remitly**, or **/unmute** there.`
+    `<@${openerId}> selected **${getTierDisplayName(tier)}** ($${getTierPrice(tier)}) in <#${channel.id}>. Payment buttons are in that ticket. If those buttons do nothing, run **/kofi**, **/remitly**, **/paypal**, or **/unmute** there.`
   );
 }
 
@@ -972,7 +972,7 @@ async function handlePayMethod(interaction: ButtonInteraction) {
     });
     await alertStaff(
       channel,
-      `<@${openerId}> picked **${method}** for **${getTierDisplayName(tier)}** in <#${channel.id}>, but the payment card did not post. If they stay stuck, run **/kofi**, **/remitly**, or **/unmute** in that ticket.`
+      `<@${openerId}> picked **${method}** for **${getTierDisplayName(tier)}** in <#${channel.id}>, but the payment card did not post. If they stay stuck, run **/kofi**, **/remitly**, **/paypal**, or **/unmute** in that ticket.`
     );
     return;
   }

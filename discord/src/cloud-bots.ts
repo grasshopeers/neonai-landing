@@ -6,6 +6,7 @@ import { registerSlashCommands } from "./commands.js";
 import {
   handleDeliverCommand,
   handleKofiCommand,
+  handlePaypalCommand,
   handlePriceCommand,
   handleRemitlyCommand,
   handleSetupCommand,
@@ -80,6 +81,7 @@ mainClient.on("interactionCreate", async (interaction) => {
     if (interaction.commandName === "setup") await handleSetupCommand(interaction);
     else if (interaction.commandName === "stripe") await handleStripeCommand(interaction);
     else if (interaction.commandName === "kofi") await handleKofiCommand(interaction);
+    else if (interaction.commandName === "paypal") await handlePaypalCommand(interaction);
     else if (interaction.commandName === "remitly") await handleRemitlyCommand(interaction);
     else if (interaction.commandName === "price") await handlePriceCommand(interaction);
     else if (interaction.commandName === "review") await handleReviewCommand(interaction);
