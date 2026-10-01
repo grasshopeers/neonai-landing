@@ -531,10 +531,12 @@ async function handleHardwareModal(interaction: ModalSubmitInteraction) {
   }
   await disableCustomIds(formMessage, [BUY_HW_BTN]);
   await postStaffHardwareReview(channel, openerId, gpu, ram, fps);
+  await unlockCustomerInTicket(channel, openerId).catch((err) => {
+    console.error("Could not unlock purchase chat after hardware:", err);
+  });
 
   await interaction.editReply({
-    content:
-      "Hardware submitted. A staff member will review it shortly.",
+    content: "Hardware submitted. You can type in this ticket. A staff member will review it shortly.",
   });
 }
 

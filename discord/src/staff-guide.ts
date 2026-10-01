@@ -86,8 +86,8 @@ export function buildStaffOnboardingEmbeds() {
     .setDescription(
       [
         `**New purchase** (#${CHANNELS.purchase})`,
-        "1. Customer opens a purchase ticket — chat is locked",
-        "2. They submit GPU / RAM / in-game FPS — you **Approve** or **Deny**",
+        "1. Customer opens a purchase ticket — chat is locked until they submit hardware",
+        "2. They submit GPU / RAM / in-game FPS and can type — you **Approve** or **Deny**",
         "3. After Approve they pick a license. A referral code is optional — staff Allow or Disallow it in **#┃refer-requests**. No code means full price",
         "4. Bot posts payment details, then unlocks chat — if the customer still cannot type, tap **Allow messages** in **#┃staff-chat**",
         "5. After the screenshot, run **`/deliver`** with tier + key",
@@ -102,7 +102,7 @@ export function buildStaffOnboardingEmbeds() {
         "",
         "**Spam mutes**",
         "• Bot auto-mutes after repeated gibberish / unrecognized spam (10 min)",
-        "• **Auto-unmute + bot stops replying** as soon as a staff member responds (purchase tickets stay locked until payment instructions)",
+        "• **Auto-unmute + bot stops replying** as soon as a staff member responds (purchase chat unlocks after the hardware form)",
         "• Use **`/unmute`** manually if needed before staff replies",
       ].join("\n")
     )
