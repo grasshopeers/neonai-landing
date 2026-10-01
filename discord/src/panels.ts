@@ -41,7 +41,7 @@ export function buildVerifyPanel() {
   return { embeds: [embed], components: [row] };
 }
 
-export function buildTicketPanel(titleSuffix: string) {
+export function buildTicketPanel() {
   const embed = new EmbedBuilder()
     .setColor(BRAND.colors.crimson)
     .setTitle(`${BRAND.emoji.ticket} ${BRAND.name} Support`)
@@ -49,8 +49,6 @@ export function buildTicketPanel(titleSuffix: string) {
       [
         "Need help? Pick a category below.",
         "A private channel opens for you and our support team.",
-        "",
-        titleSuffix,
         "",
         "**Available 24/7**",
       ].join("\n")
@@ -73,6 +71,14 @@ export function buildTicketPanel(titleSuffix: string) {
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);
 
   return { embeds: [embed], components: [row] };
+}
+
+export function ticketPanelNotice(purchaseChannelId: string) {
+  return [
+    `To buy a license, open a purchase ticket in <#${purchaseChannelId}>. A support ticket is for help only.`,
+    "",
+    "If there is no response within **24 hours**, the ticket will be closed.",
+  ].join("\n");
 }
 
 export function buildPurchasePanel() {

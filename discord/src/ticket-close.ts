@@ -18,8 +18,8 @@ import { deferEphemeral, resolveInteractionMember } from "./interaction-utils.js
 import { buildClosedTranscript, postTicketTranscript } from "./ticket-transcripts.js";
 import { rememberTicketLogMessage } from "./ticket-log-guard.js";
 
-/** Close ticket channels after 48 hours with no messages */
-export const TICKET_INACTIVE_CLOSE_MS = 48 * 60 * 60 * 1000;
+/** Close ticket channels after 24 hours with no messages */
+export const TICKET_INACTIVE_CLOSE_MS = 24 * 60 * 60 * 1000;
 
 const AUTO_CLOSE_CHECK_MS = 60 * 60 * 1000;
 
@@ -171,7 +171,7 @@ async function sweepInactiveTickets(client: Client, guildId: string) {
       await closeTicketChannel(
         guild,
         ticketChannel,
-        "NeonAi (auto — 48h inactivity)"
+        "NeonAi (auto — 24h inactivity)"
       );
       console.log(`Auto-closed inactive ticket #${ticketChannel.name}`);
     } catch (err) {

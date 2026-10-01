@@ -22,7 +22,7 @@ export function buildStaffOnboardingEmbeds() {
         "• Payments: **Ko-fi / card**, **Remitly**, or **PayPal** (bot posts details after they pick)",
         "• Customers send a **payment screenshot** in the purchase ticket after paying — never ask for card numbers or OTPs",
         "• Close a ticket with **Close Ticket** or `/close`. Delivering a key does not close it",
-        "• Inactive tickets auto-close after **48 hours**",
+        "• Inactive tickets auto-close after **24 hours**",
       ].join("\n")
     )
     .setFooter(brandEmbed().footer);

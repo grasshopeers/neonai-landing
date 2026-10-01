@@ -49,17 +49,13 @@ async function postAs(token: string, label: string) {
   if (token === ticketToken) {
     const ticket = findTextChannel(guild, CHANNELS.ticket);
     if (ticket?.isTextBased()) {
-      await ticket.send(
-        buildTicketPanel("_Members only — staff handles your private ticket._")
-      );
+      await ticket.send(buildTicketPanel());
       console.log(`  + ticket panel in #${CHANNELS.ticket}`);
     }
 
     const customerSupport = findTextChannel(guild, CHANNELS.customerSupport);
     if (customerSupport?.isTextBased()) {
-      await customerSupport.send(
-        buildTicketPanel("_Customers only — staff handles your private ticket._")
-      );
+      await customerSupport.send(buildTicketPanel());
       console.log(`  + customer panel in #${CHANNELS.customerSupport}`);
     }
 

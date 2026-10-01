@@ -11,7 +11,6 @@ import {
   EmbedBuilder,
   GatewayIntentBits,
   PermissionFlagsBits,
-  StringSelectMenuBuilder,
 } from "discord.js";
 import { BRAND, brandEmbed } from "./brand.js";
 import { relocateOpenTickets } from "./ticket-channels.js";
@@ -26,7 +25,6 @@ import {
   REMOVED_CHANNELS,
   ROLES,
   SERVER_LAYOUT,
-  TICKET_OPTIONS,
   assignOwnerManagement,
   channelOverwrites,
   findTextChannel,
@@ -332,41 +330,20 @@ async function postIfEmpty(
   return true;
 }
 
-async function postTicketPanel(
-  channel: import("discord.js").TextChannel,
-  titleSuffix: string
-) {
-  const embed = new EmbedBuilder()
-    .setColor(BRAND.colors.crimson)
-    .setTitle(`${BRAND.emoji.ticket} ${BRAND.name} Support`)
-    .setDescription(
-      [
-        "Need help? Pick a category below.",
-        "A private channel opens for you and our support team.",
-        "",
-        titleSuffix,
-        "",
-        "**Available 24/7**",
-      ].join("\n")
-    )
-    .setFooter(brandEmbed().footer);
-
-  const menu = new StringSelectMenuBuilder()
-    .setCustomId("neonai_ticket_select")
-    .setPlaceholder("Choose a support category…")
-    .addOptions(
-      TICKET_OPTIONS.map((opt) => ({
-        label: opt.label,
-        description: opt.description.slice(0, 100),
-        value: opt.id,
-        emoji: opt.emoji,
-      }))
+async function postTicketPanel(channel: import("discord.js").TextChannel) {
+  const { buildTicketPanel, ticketPanelNotice } = await import("./panels.js");
+  const posted = await postIfEmpty(channel, buildTicketPanel());
+  const purchase = findTextChannel(channel.guild, CHANNELS.purchase);
+  if (purchase) {
+    const recent = await channel.messages.fetch({ limit: 15 }).catch(() => null);
+    const hasNotice = recent?.some((message) =>
+      message.content.includes("A support ticket is for help only.")
     );
-
-  const row =
-    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);
-
-  return postIfEmpty(channel, { embeds: [embed], components: [row] });
+    if (!hasNotice) {
+      await channel.send({ content: ticketPanelNotice(purchase.id) });
+    }
+  }
+  return posted;
 }
 
 async function postStarterMessages(guild: import("discord.js").Guild) {
@@ -571,24 +548,14 @@ async function postStarterMessages(guild: import("discord.js").Guild) {
 
   const ticketChannel = findTextChannel(guild, CHANNELS.ticket);
   if (ticketChannel?.isTextBased()) {
-    if (
-      await postTicketPanel(
-        ticketChannel,
-        "_Members only — staff handles your private ticket._"
-      )
-    ) {
+    if (await postTicketPanel(ticketChannel)) {
       console.log("  + posted member ticket panel");
     }
   }
 
   const customerSupport = findTextChannel(guild, CHANNELS.customerSupport);
   if (customerSupport?.isTextBased()) {
-    if (
-      await postTicketPanel(
-        customerSupport,
-        "_Customers only — staff handles your private ticket._"
-      )
-    ) {
+    if (await postTicketPanel(customerSupport)) {
       console.log("  + posted customer support panel");
     }
   }
