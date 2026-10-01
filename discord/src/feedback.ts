@@ -230,7 +230,10 @@ export async function handleFeedbackModal(interaction: ModalSubmitInteraction) {
             value: `<@${interaction.user.id}> (\`${interaction.user.id}\`)`,
             inline: false,
           },
-          { name: "Verified key", value: `\`${tag.key}\``, inline: false }
+          { name: "Verified key", value: `\`${tag.key}\``, inline: false },
+          ...(kind === "review"
+            ? [{ name: "Reward", value: "Add 24 hours to this customer's key.", inline: false }]
+            : [])
         )
         .setFooter(brandEmbed().footer)
         .setTimestamp(),

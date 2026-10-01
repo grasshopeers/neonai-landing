@@ -28,6 +28,7 @@ import {
   recordTicketOpenAttempt,
 } from "./ticket-guard.js";
 import { recordLicensePurchase } from "./purchase-history.js";
+import { completeReferralPurchase } from "./referral-store.js";
 import {
   formatLifetimeRequirement,
   formatTierList,
@@ -765,6 +766,33 @@ export async function handleDeliverCommand(
   }
 
   recordLicensePurchase(openerId, tier);
+  const referral = completeReferralPurchase(channel.id);
+  if (referral?.reward) {
+    const requests = findTextChannel(interaction.guild!, CHANNELS.referRequests);
+    if (requests?.isTextBased()) {
+      const ping = staffRoles(resolveRoleMap(interaction.guild!))
+        .map((role) => `<@&${role.id}>`)
+        .join(" ");
+      await requests.send({
+        content: ping || undefined,
+        embeds: [
+          new EmbedBuilder()
+            .setColor(BRAND.colors.crimson)
+            .setTitle("Referral purchase completed")
+            .setDescription(
+              [
+                `**Code:** \`${referral.code}\``,
+                `**Owner:** <@${referral.ownerId}>`,
+                `**Buyer:** <@${openerId}>`,
+                "",
+                `They reached **${referral.count}** successful referrals. Send them a free **${referral.reward}** key yourself.`,
+              ].join("\n")
+            )
+            .setFooter(brandEmbed().footer),
+        ],
+      });
+    }
+  }
 
   const dmNote = keyDmSent
     ? "The key was sent to their DMs."

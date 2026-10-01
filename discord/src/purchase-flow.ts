@@ -37,7 +37,12 @@ import {
 } from "./tiers.js";
 import { KOFI_TIP_URL, PAYPAL_PAYMENT_URL, REMITLY_PAYMENT } from "./site.js";
 import { resolveInteractionMember } from "./interaction-utils.js";
-import { findReferralCode, isReferralCode, normalizeReferralCode } from "./referral-store.js";
+import {
+  findReferralCode,
+  isReferralCode,
+  normalizeReferralCode,
+  queueReferralPurchase,
+} from "./referral-store.js";
 
 export const BUY_HW_BTN = "neonai_buy_hw";
 export const BUY_HW_MODAL = "neonai_buy_hw_modal";
@@ -53,6 +58,8 @@ const BUY_CHECKOUT_SOURCE = "neonai_buy_checkout_source";
 const BUY_CHECKOUT_GO = "neonai_buy_checkout_go";
 const BUY_CHECKOUT_MODAL = "neonai_buy_checkout_modal:";
 const BUY_CHECKOUT_CODE = "neonai_buy_checkout_code";
+const BUY_CHECKOUT_CODE_BTN = "neonai_buy_checkout_codebtn";
+const BUY_CHECKOUT_CODE_MODAL = "neonai_buy_checkout_code_modal";
 const REF_USE_YES = "neonai_ref_use_yes:";
 const REF_USE_NO = "neonai_ref_use_no:";
 const BUY_PAY_PREFIX = "neonai_buy_pay:";
@@ -324,6 +331,7 @@ export function isPurchaseFlowInteraction(interaction: Interaction) {
   if (interaction.isModalSubmit()) {
     return (
       interaction.customId === BUY_HW_MODAL ||
+      interaction.customId === BUY_CHECKOUT_CODE_MODAL ||
       interaction.customId.startsWith(BUY_CHECKOUT_MODAL)
     );
   }
@@ -342,6 +350,8 @@ export function isPurchaseFlowInteraction(interaction: Interaction) {
     id === BUY_DENY ||
     id === BUY_UNMUTE_APPROVE ||
     id === BUY_CHECKOUT_GO ||
+    id === BUY_CHECKOUT_CODE_BTN ||
+    id.startsWith(`${BUY_CHECKOUT_CODE_BTN}:`) ||
     id.startsWith(`${BUY_UNMUTE_APPROVE}:`) ||
     id.startsWith(`${BUY_TIER_SELECT}:`) ||
     id.startsWith(BUY_PAY_PREFIX) ||
@@ -369,6 +379,18 @@ export async function handlePurchaseFlowInteraction(interaction: Interaction) {
       interaction.customId === BUY_CHECKOUT_SOURCE)
   ) {
     await rememberCheckoutSelect(interaction);
+    return;
+  }
+  if (
+    interaction.isButton() &&
+    (interaction.customId === BUY_CHECKOUT_CODE_BTN ||
+      interaction.customId.startsWith(`${BUY_CHECKOUT_CODE_BTN}:`))
+  ) {
+    await handleCheckoutCodeButton(interaction);
+    return;
+  }
+  if (interaction.isModalSubmit() && interaction.customId === BUY_CHECKOUT_CODE_MODAL) {
+    await handleCheckoutCodeModal(interaction);
     return;
   }
   if (interaction.isButton() && interaction.customId === BUY_CHECKOUT_GO) {
@@ -593,8 +615,8 @@ async function handleApprove(interaction: ButtonInteraction) {
       [
         `<@${openerId}> — your hardware was approved.`,
         "",
-        "Choose a license. A referral code is optional.",
-        "If you leave the code blank, you pay the full price.",
+        "Choose a license. A referral code is optional and is asked above where you heard about NeonAi.",
+        "Leave the code blank to pay the full price.",
         "",
         formatTierList(),
         "",
@@ -665,7 +687,11 @@ function heardLabel(value: string | null) {
   return HEARD_ABOUT.find((item) => item.value === value)?.label ?? "Not provided";
 }
 
-function buildCheckoutComponents(tierValue?: string | null, sourceValue?: string | null) {
+function buildCheckoutComponents(
+  tierValue?: string | null,
+  sourceValue?: string | null,
+  code?: string | null
+) {
   const license = new StringSelectMenuBuilder()
     .setCustomId(BUY_CHECKOUT_TIER)
     .setPlaceholder("License")
@@ -676,6 +702,11 @@ function buildCheckoutComponents(tierValue?: string | null, sourceValue?: string
         default: tierValue === encodeTier(tier.value),
       }))
     );
+
+  const codeButton = new ButtonBuilder()
+    .setCustomId(code ? `${BUY_CHECKOUT_CODE_BTN}:${code}` : BUY_CHECKOUT_CODE_BTN)
+    .setLabel(code ? `Referral code: ${code}` : "Referral code (optional)")
+    .setStyle(code ? ButtonStyle.Success : ButtonStyle.Secondary);
 
   const source = new StringSelectMenuBuilder()
     .setCustomId(BUY_CHECKOUT_SOURCE)
@@ -695,6 +726,7 @@ function buildCheckoutComponents(tierValue?: string | null, sourceValue?: string
 
   return [
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(license),
+    new ActionRowBuilder<ButtonBuilder>().addComponents(codeButton),
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(source),
     new ActionRowBuilder<ButtonBuilder>().addComponents(go),
   ];
@@ -731,7 +763,75 @@ async function rememberCheckoutSelect(interaction: StringSelectMenuInteraction) 
     interaction.customId === BUY_CHECKOUT_SOURCE
       ? interaction.values[0]
       : selectedMenuValue(interaction.message, BUY_CHECKOUT_SOURCE);
-  await interaction.update({ components: buildCheckoutComponents(tier, source) });
+  await interaction.update({
+    components: buildCheckoutComponents(tier, source, selectedReferralCode(interaction.message)),
+  });
+}
+
+function selectedReferralCode(message: Message) {
+  for (const row of message.components) {
+    const json = row.toJSON() as { components?: { custom_id?: string }[] };
+    for (const component of json.components ?? []) {
+      const id = component.custom_id ?? "";
+      if (!id.startsWith(`${BUY_CHECKOUT_CODE_BTN}:`)) continue;
+      const code = id.slice(BUY_CHECKOUT_CODE_BTN.length + 1);
+      return isReferralCode(code) ? code : null;
+    }
+  }
+  return null;
+}
+
+async function handleCheckoutCodeButton(interaction: ButtonInteraction) {
+  const channel = asTicketChannel(interaction.channel);
+  const openerId = parseTicketOpenerId(channel?.topic);
+  if (!channel || !isOpener(interaction, openerId)) {
+    await interaction.reply({
+      content: "Only the customer who opened this ticket can use this.",
+      ephemeral: true,
+    });
+    return;
+  }
+  const modal = new ModalBuilder()
+    .setCustomId(BUY_CHECKOUT_CODE_MODAL)
+    .setTitle("Referral code")
+    .addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId(BUY_CHECKOUT_CODE)
+          .setLabel("Referral code")
+          .setPlaceholder("Optional. 6 letters or numbers")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(false)
+          .setMaxLength(6)
+      )
+    );
+  await interaction.showModal(modal);
+}
+
+async function handleCheckoutCodeModal(interaction: ModalSubmitInteraction) {
+  const channel = asTicketChannel(interaction.channel);
+  const openerId = parseTicketOpenerId(channel?.topic);
+  if (!channel || !openerId || !isOpener(interaction, openerId) || !interaction.message) {
+    await interaction.reply({
+      content: "Only the customer who opened this ticket can use this.",
+      ephemeral: true,
+    });
+    return;
+  }
+  const raw = interaction.fields.getTextInputValue(BUY_CHECKOUT_CODE).trim();
+  const code = raw ? normalizeReferralCode(raw) : null;
+  if (code && !isReferralCode(code)) {
+    await interaction.reply({
+      content: "A referral code must be exactly 6 letters or numbers, or leave it blank.",
+      ephemeral: true,
+    });
+    return;
+  }
+  const tier = selectedMenuValue(interaction.message, BUY_CHECKOUT_TIER);
+  const source = selectedMenuValue(interaction.message, BUY_CHECKOUT_SOURCE);
+  await interaction.update({
+    components: buildCheckoutComponents(tier, source, code),
+  });
 }
 
 async function handleCheckoutContinue(interaction: ButtonInteraction) {
@@ -753,67 +853,29 @@ async function handleCheckoutContinue(interaction: ButtonInteraction) {
     return;
   }
   const source = selectedMenuValue(interaction.message, BUY_CHECKOUT_SOURCE) ?? "none";
-  const modal = new ModalBuilder()
-    .setCustomId(`${BUY_CHECKOUT_MODAL}${tierEncoded}:${source}`)
-    .setTitle("Referral code")
-    .addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(
-        new TextInputBuilder()
-          .setCustomId(BUY_CHECKOUT_CODE)
-          .setLabel("Referral code")
-          .setPlaceholder("Optional. 6 letters or numbers")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(false)
-          .setMaxLength(6)
-      )
-    );
-  await interaction.showModal(modal);
-}
-
-async function handleCheckoutModal(interaction: ModalSubmitInteraction) {
-  const channel = asTicketChannel(interaction.channel);
-  const openerId = parseTicketOpenerId(channel?.topic);
-  if (!channel || !openerId || !isOpener(interaction, openerId)) {
-    await interaction.reply({
-      content: "Only the customer who opened this ticket can continue.",
-      ephemeral: true,
-    });
-    return;
-  }
-
-  const payload = interaction.customId.slice(BUY_CHECKOUT_MODAL.length);
-  const [tierEncoded, sourceRaw] = payload.split(":");
-  const tier = decodeTier(tierEncoded ?? "");
-  if (!tier) {
-    await interaction.reply({
-      content: "Choose a license again.",
-      ephemeral: true,
-    });
-    return;
-  }
-
-  const rawCode = interaction.fields.getTextInputValue(BUY_CHECKOUT_CODE).trim();
-  const source = sourceRaw && sourceRaw !== "none" ? sourceRaw : null;
+  const rawCode = selectedReferralCode(interaction.message);
+  const tier = decodeTier(tierEncoded)!;
   if (!rawCode) {
     await interaction.deferUpdate();
-    if (interaction.message) await disableCustomIds(interaction.message, [BUY_CHECKOUT_GO]);
-    await offerPaymentMethods(channel, openerId, tier);
+    await disableCustomIds(interaction.message, [BUY_CHECKOUT_GO]);
+    await offerPaymentMethods(channel, openerId!, tier);
     return;
   }
+  await postReferralCheck(interaction, channel, openerId!, tier, rawCode, source === "none" ? null : source);
+}
 
-  const code = normalizeReferralCode(rawCode);
-  if (!isReferralCode(code)) {
-    await interaction.reply({
-      content: "A referral code must be exactly 6 letters or numbers, or leave it blank.",
-      ephemeral: true,
-    });
-    return;
-  }
-
+async function postReferralCheck(
+  interaction: ButtonInteraction | ModalSubmitInteraction,
+  channel: TextChannel,
+  openerId: string,
+  tier: LicenseTier,
+  code: string,
+  source: string | null
+) {
   const staffChannel = findTextChannel(channel.guild, CHANNELS.referRequests);
   if (!staffChannel?.isTextBased()) {
     await interaction.reply({
-      content: "Referral checks are unavailable. Leave the code blank to pay the full price.",
+      content: "Referral checks are unavailable. Clear the code to pay the full price.",
       ephemeral: true,
     });
     return;
@@ -876,6 +938,49 @@ async function handleCheckoutModal(interaction: ModalSubmitInteraction) {
   });
 }
 
+async function handleCheckoutModal(interaction: ModalSubmitInteraction) {
+  const channel = asTicketChannel(interaction.channel);
+  const openerId = parseTicketOpenerId(channel?.topic);
+  if (!channel || !openerId || !isOpener(interaction, openerId)) {
+    await interaction.reply({
+      content: "Only the customer who opened this ticket can continue.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const payload = interaction.customId.slice(BUY_CHECKOUT_MODAL.length);
+  const [tierEncoded, sourceRaw] = payload.split(":");
+  const tier = decodeTier(tierEncoded ?? "");
+  if (!tier) {
+    await interaction.reply({
+      content: "Choose a license again.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const rawCode = interaction.fields.getTextInputValue(BUY_CHECKOUT_CODE).trim();
+  const source = sourceRaw && sourceRaw !== "none" ? sourceRaw : null;
+  if (!rawCode) {
+    await interaction.deferUpdate();
+    if (interaction.message) await disableCustomIds(interaction.message, [BUY_CHECKOUT_GO]);
+    await offerPaymentMethods(channel, openerId, tier);
+    return;
+  }
+
+  const code = normalizeReferralCode(rawCode);
+  if (!isReferralCode(code)) {
+    await interaction.reply({
+      content: "A referral code must be exactly 6 letters or numbers, or leave it blank.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await postReferralCheck(interaction, channel, openerId, tier, code, source);
+}
+
 async function handleReferralUse(interaction: ButtonInteraction, allow: boolean) {
   if (!(await requireStaff(interaction))) {
     await interaction.reply({
@@ -927,6 +1032,7 @@ async function handleReferralUse(interaction: ButtonInteraction, allow: boolean)
     return;
   }
 
+  queueReferralPurchase(code, channel.id, openerId);
   const full = getTierPrice(tier) ?? 0;
   await offerPaymentMethods(channel, openerId, tier, {
     cents: Number.isFinite(cents) ? cents : discountCents(full),
@@ -1045,46 +1151,6 @@ async function alertStaff(channel: TextChannel, text: string) {
     return;
   }
   console.error("Staff chat missing:", text);
-}
-
-async function requestStaffUnmute(
-  channel: TextChannel,
-  openerId: string,
-  method: string,
-  tier: LicenseTier
-) {
-  const methodLabel =
-    method === "kofi" ? "Ko-fi / card" : method === "remitly" ? "Remitly" : "PayPal";
-  const embed = new EmbedBuilder()
-    .setColor(BRAND.colors.ruby)
-    .setTitle(`${BRAND.emoji.ticket} Unmute request`)
-    .setDescription(
-      [
-        `<@${openerId}> chose **${methodLabel}** for **${getTierDisplayName(tier)}** ($${getTierPrice(tier)}).`,
-        "",
-        "They need to send a **payment screenshot** in this ticket.",
-        "If they still cannot type, click **Allow messages**.",
-      ].join("\n")
-    )
-    .setFooter(brandEmbed().footer);
-
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`${BUY_UNMUTE_APPROVE}:${channel.id}`)
-      .setLabel("Allow messages")
-      .setStyle(ButtonStyle.Success)
-  );
-
-  const staffChat = findTextChannel(channel.guild, CHANNELS.staffChat);
-  if (!staffChat?.isTextBased()) {
-    console.error("Staff chat missing for unmute request");
-    return;
-  }
-  await staffChat.send({
-    content: `${staffPing(channel.guild) ?? ""} <#${channel.id}>`.trim(),
-    embeds: [embed],
-    components: [row],
-  });
 }
 
 async function handleUnmuteApprove(interaction: ButtonInteraction) {
@@ -1349,7 +1415,12 @@ async function handlePayMethod(interaction: ButtonInteraction) {
     console.error("Auto-unlock failed after payment:", err);
   }
 
-  await requestStaffUnmute(channel, openerId, method!, tier);
+  if (!unlocked) {
+    await alertStaff(
+      channel,
+      `<@${openerId}> paid with **${method}** for **${getTierDisplayName(tier)}** in <#${channel.id}>, but chat did not unlock. Run **/unmute** in that ticket.`
+    );
+  }
   await channel.send({
     content: `<@${openerId}>`,
     embeds: [
@@ -1358,16 +1429,8 @@ async function handlePayMethod(interaction: ButtonInteraction) {
         .setTitle(`${BRAND.emoji.purchase} Send your payment screenshot`)
         .setDescription(
           unlocked
-            ? [
-                `<@${openerId}> — after you pay, send your screenshot in this ticket.`,
-                "",
-                "If the message box is still locked, staff can tap **Allow messages** in **#┃staff-chat**.",
-              ].join("\n")
-            : [
-                `<@${openerId}> — after you pay, staff need to enable messages in this ticket.`,
-                "",
-                "You will be pinged here once you can send the screenshot.",
-              ].join("\n")
+            ? `<@${openerId}> — after you pay, send your screenshot in this ticket.`
+            : `<@${openerId}> — after you pay, staff need to enable messages in this ticket. You will be pinged here once you can send the screenshot.`
         )
         .setFooter(brandEmbed().footer),
     ],

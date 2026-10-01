@@ -25,7 +25,6 @@ import {
   normalizeReferralCode,
   saveReferralCode,
 } from "./referral-store.js";
-import { isLicenseTier, type LicenseTier } from "./tiers.js";
 
 const CREATE_BTN = "neonai_ref_create";
 const CREATE_MODAL = "neonai_ref_create_modal";
@@ -34,28 +33,6 @@ const CREATE_KEY = "neonai_ref_key";
 const CREATE_CODE = "neonai_ref_code";
 const APPROVE_PREFIX = "neonai_ref_ok:";
 const DENY_PREFIX = "neonai_ref_no:";
-
-const LICENSE_ALIASES: Record<string, LicenseTier> = {
-  weekly: "1 Week",
-  week: "1 Week",
-  "1week": "1 Week",
-  "1 week": "1 Week",
-  monthly: "1 Month",
-  month: "1 Month",
-  "1month": "1 Month",
-  "1 month": "1 Month",
-  quarterly: "3 Months",
-  quarter: "3 Months",
-  "3months": "3 Months",
-  "3 months": "3 Months",
-  lifetime: "Lifetime",
-};
-
-export function parseOwnedLicense(raw: string): LicenseTier | null {
-  const trimmed = raw.trim();
-  if (isLicenseTier(trimmed)) return trimmed;
-  return LICENSE_ALIASES[trimmed.toLowerCase()] ?? null;
-}
 
 export function buildReferPanel() {
   const embed = new EmbedBuilder()
@@ -125,10 +102,10 @@ async function showCreateModal(interaction: ButtonInteraction) {
         new TextInputBuilder()
           .setCustomId(CREATE_LICENSE)
           .setLabel("License you own")
-          .setPlaceholder("Weekly, Monthly, Quarterly, or Lifetime")
+          .setPlaceholder("1 weekly")
           .setStyle(TextInputStyle.Short)
           .setRequired(true)
-          .setMaxLength(20)
+          .setMaxLength(40)
       ),
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
@@ -166,13 +143,13 @@ async function handleCreateModal(interaction: ModalSubmitInteraction) {
     return;
   }
 
-  const license = parseOwnedLicense(interaction.fields.getTextInputValue(CREATE_LICENSE));
+  const license = interaction.fields.getTextInputValue(CREATE_LICENSE).trim();
   const key = interaction.fields.getTextInputValue(CREATE_KEY).trim();
   const code = normalizeReferralCode(interaction.fields.getTextInputValue(CREATE_CODE));
 
   if (!license) {
     await interaction.reply({
-      content: "Use Weekly, Monthly, Quarterly, or Lifetime for the license you own.",
+      content: "Enter the license you own, such as 1 weekly.",
       ephemeral: true,
     });
     return;

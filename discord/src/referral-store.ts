@@ -8,6 +8,8 @@ export type ReferralRecord = {
   license: string;
   key: string;
   status: "pending" | "approved" | "denied";
+  successfulCount?: number;
+  pendingPurchases?: { ticketId: string; buyerId: string }[];
 };
 
 type Store = { codes: ReferralRecord[] };
@@ -45,6 +47,33 @@ export function findReferralCode(code: string) {
 export function codeTaken(code: string) {
   const found = findReferralCode(code);
   return Boolean(found && found.status !== "denied");
+}
+
+export function queueReferralPurchase(code: string, ticketId: string, buyerId: string) {
+  const store = load();
+  const record = store.codes.find((item) => item.code === normalizeReferralCode(code));
+  if (!record) return;
+  const pending = record.pendingPurchases ?? [];
+  if (pending.some((item) => item.ticketId === ticketId)) return;
+  record.pendingPurchases = [...pending, { ticketId, buyerId }];
+  save(store);
+}
+
+export function completeReferralPurchase(ticketId: string) {
+  const store = load();
+  const record = store.codes.find((item) =>
+    item.pendingPurchases?.some((purchase) => purchase.ticketId === ticketId)
+  );
+  if (!record) return null;
+  record.pendingPurchases = (record.pendingPurchases ?? []).filter(
+    (purchase) => purchase.ticketId !== ticketId
+  );
+  record.successfulCount = (record.successfulCount ?? 0) + 1;
+  save(store);
+  const count = record.successfulCount;
+  const reward =
+    count === 4 ? "Weekly" : count === 10 ? "Monthly" : count === 20 ? "Lifetime" : null;
+  return { ownerId: record.ownerId, code: record.code, count, reward };
 }
 
 export function saveReferralCode(record: ReferralRecord) {
