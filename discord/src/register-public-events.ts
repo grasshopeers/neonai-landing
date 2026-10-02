@@ -73,6 +73,7 @@ import {
 } from "./feedback.js";
 import { registerTicketLogGuard } from "./ticket-log-guard.js";
 import { handleReferralInteraction, isReferralInteraction } from "./referral.js";
+import { handleHwidInteraction, isHwidInteraction } from "./hwid.js";
 
 function ticketLabel(category: TicketCategory) {
   return TICKET_OPTIONS.find((t) => t.id === category)?.label ?? "Support";
@@ -359,6 +360,11 @@ export function registerMainBotEvents(client: Client, guildId: string) {
         return;
       }
 
+      if (isHwidInteraction(interaction)) {
+        await handleHwidInteraction(interaction);
+        return;
+      }
+
       if (interaction.isButton() && interaction.customId === "neonai_verify") {
         await handleVerify(interaction);
         return;
@@ -407,6 +413,11 @@ export function registerTicketBotEvents(client: Client, guildId: string) {
     try {
       if (isReferralInteraction(interaction)) {
         await handleReferralInteraction(interaction);
+        return;
+      }
+
+      if (isHwidInteraction(interaction)) {
+        await handleHwidInteraction(interaction);
         return;
       }
 

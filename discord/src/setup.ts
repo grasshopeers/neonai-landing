@@ -546,6 +546,25 @@ async function postStarterMessages(guild: import("discord.js").Guild) {
   const { postCustomerFeedbackChannelIntros } = await import("./redeem.js");
   await postCustomerFeedbackChannelIntros(guild);
 
+  const hwidReset = findTextChannel(guild, CHANNELS.hwidReset);
+  if (hwidReset?.isTextBased()) {
+    const { buildHwidPanel } = await import("./hwid.js");
+    const recent = await hwidReset.messages.fetch({ limit: 10 }).catch(() => null);
+    const hasPanel = recent?.some((message) =>
+      message.components.some((row) =>
+        row.components.some(
+          (component) =>
+            "customId" in component &&
+            (component as { customId?: string }).customId === "neonai_hwid_open"
+        )
+      )
+    );
+    if (!hasPanel) {
+      await hwidReset.send(buildHwidPanel());
+      console.log("  + posted hwid reset panel");
+    }
+  }
+
   const ticketChannel = findTextChannel(guild, CHANNELS.ticket);
   if (ticketChannel?.isTextBased()) {
     if (await postTicketPanel(ticketChannel)) {

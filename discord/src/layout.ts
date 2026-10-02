@@ -51,6 +51,8 @@ export const CHANNELS = {
   customerSupport: "┃customer-support",
   redeem: "┃redeem",
   refer: "┃refer",
+  hwidReset: "┃hwid-reset",
+  hwidRequests: "┃hwid-requests",
   reviewUs: "┃review-us",
   reportBug: "┃report-a-bug",
   reportBan: "┃report-a-ban",
@@ -312,6 +314,13 @@ export const SERVER_LAYOUT: CategoryDef[] = [
         readOnly: true,
         customerOnly: true,
       },
+      {
+        name: CHANNELS.hwidReset,
+        type: ChannelType.GuildText,
+        topic: "Customers can request an HWID reset.",
+        readOnly: true,
+        customerOnly: true,
+      },
     ],
   },
   {
@@ -366,6 +375,12 @@ export const SERVER_LAYOUT: CategoryDef[] = [
         name: CHANNELS.referRequests,
         type: ChannelType.GuildText,
         topic: "Referral code requests and purchase checks — staff only.",
+        staffOnly: true,
+      },
+      {
+        name: CHANNELS.hwidRequests,
+        type: ChannelType.GuildText,
+        topic: "HWID reset requests — staff Allow sends the customer a DM.",
         staffOnly: true,
       },
       {

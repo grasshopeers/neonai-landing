@@ -120,6 +120,8 @@ export function buildStaffOnboardingEmbeds() {
         `**#${CHANNELS.ticketLogs}** — ticket open/close summaries plus a \`.txt\` transcript (**view only** for staff; only server owner can delete)`,
         `**#${CHANNELS.redeemRequests}** — staff Accept / Deny redeem requests`,
         `**#${CHANNELS.refer}** — customers request a referral code`,
+        `**#${CHANNELS.hwidReset}** — customers request an HWID reset`,
+        `**#${CHANNELS.hwidRequests}** — staff Allow an HWID reset. The bot DMs the customer that it will be done in 5 minutes. You still reset the HWID yourself`,
         `**#${CHANNELS.announcement}** — customer announcements`,
         `**#${CHANNELS.referRequests}** — approve new codes, and Allow / Disallow a code used in a purchase. After **/deliver**, 4 successful referrals is a free Weekly, 10 is a free Monthly, and 20 is a free Lifetime. Send that key yourself. A review asks you to add 24 hours to their key`,
         `**#${CHANNELS.staffChat}** — internal coordination`,
