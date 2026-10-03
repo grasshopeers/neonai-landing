@@ -606,14 +606,12 @@ export function channelOverwrites(
   if (channel.verifyChannel) {
     overwrites.push({
       id: everyone.id,
-      allow: [
-        ...memberRead,
-        PermissionFlagsBits.CreatePrivateThreads,
-        PermissionFlagsBits.SendMessagesInThreads,
-      ],
+      allow: [...memberRead],
       deny: [
         PermissionFlagsBits.SendMessages,
         PermissionFlagsBits.CreatePublicThreads,
+        PermissionFlagsBits.CreatePrivateThreads,
+        PermissionFlagsBits.SendMessagesInThreads,
       ],
     });
     if (roles.member) {
