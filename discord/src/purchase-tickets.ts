@@ -324,15 +324,15 @@ export async function handleKofiCommand(
 
   const kofiEmbed = new EmbedBuilder()
     .setColor(BRAND.colors.crimson)
-    .setTitle(`${BRAND.emoji.purchase} Ko-fi Payment`)
+    .setTitle(`${BRAND.emoji.purchase} Credit/Debit card`)
     .setDescription(
       [
-        `<@${openerId}> — please complete a **one-time tip** for your **${getTierDisplayName(tier)}** license.`,
+        `<@${openerId}> — pay for your **${getTierDisplayName(tier)}** license with a credit or debit card.`,
         "",
-        `💰 **Amount to tip:** **$${price} USD**`,
-        `🔗 [**Open Ko-fi**](${KOFI_TIP_URL})`,
+        `💰 **Amount:** **$${price} USD**`,
+        `🔗 [**Pay with credit or debit card**](${KOFI_TIP_URL})`,
         "",
-        "On Ko-fi, leave a **one-time tip** for exactly that amount, then come back here and let us know once it’s done.",
+        "Pay exactly that amount, then come back here and let us know once it’s done.",
         "",
         "Staff will confirm payment and deliver your license key in this ticket.",
       ].join("\n")

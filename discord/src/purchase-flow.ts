@@ -1094,7 +1094,7 @@ export async function offerPaymentMethods(
           : `Pay **${amountLabel} USD**.`,
         "",
         "Choose how you want to pay:",
-        "• **Ko-fi / card** — one-time tip (credit or debit)",
+        "• **Credit/Debit card**",
         "• **Remitly** — bank deposit",
         "• **PayPal** — send the exact amount",
       ].join("\n")
@@ -1118,7 +1118,7 @@ function buildPayButtonRow(tier: LicenseTier, cents?: number) {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`${BUY_PAY_PREFIX}kofi:${encoded}${suffix}`)
-      .setLabel("Ko-fi / Card")
+      .setLabel("Credit/Debit card")
       .setStyle(ButtonStyle.Danger),
     new ButtonBuilder()
       .setCustomId(`${BUY_PAY_PREFIX}remitly:${encoded}${suffix}`)
@@ -1468,11 +1468,11 @@ function buildPaymentEmbed(
 ) {
   if (method === "kofi") {
     return paymentCard(
-      "Ko-fi / Card",
+      "Credit/Debit card",
       openerId,
       tier,
       price,
-      `[Open Ko-fi](${KOFI_TIP_URL})\nLeave a one-time tip for the amount above. Credit and debit cards work on Ko-fi.`
+      `[Pay with credit or debit card](${KOFI_TIP_URL})\nPay the amount above with a credit or debit card.`
     );
   }
 

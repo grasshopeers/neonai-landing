@@ -64,7 +64,7 @@ export function buildBillingWelcome(channelId: string) {
       [
         "We accept the following payment methods:",
         "",
-        "• **Ko-fi / card**",
+        "• **Credit/Debit card**",
         "• **Remitly**",
         "• **PayPal**",
         "",
