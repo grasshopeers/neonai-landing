@@ -180,9 +180,16 @@ async function approveRedeem(opts: {
   return access;
 }
 
+function formatDiscordName(user: { username: string; globalName: string | null }) {
+  const handle = `@${user.username}`;
+  if (user.globalName && user.globalName !== user.username) return `${user.globalName} (${handle})`;
+  return handle;
+}
+
 async function postStaffRequest(opts: {
   guild: import("discord.js").Guild;
   userId: string;
+  username: string;
   key: string;
   tier: LicenseTier;
   note: string;
@@ -199,6 +206,7 @@ async function postStaffRequest(opts: {
     .setDescription(opts.note)
     .addFields(
       { name: "User", value: `<@${opts.userId}> (\`${opts.userId}\`)`, inline: false },
+      { name: "Username", value: opts.username, inline: false },
       { name: "Tier selected", value: opts.tier, inline: true },
       { name: "Key", value: `\`${normalizeLicenseKey(opts.key)}\``, inline: false },
       { name: "Lookup", value: opts.lookupSummary.slice(0, 1024), inline: false }
@@ -394,6 +402,7 @@ export async function handleRedeemModal(interaction: ModalSubmitInteraction) {
   const staffMsg = await postStaffRequest({
     guild: interaction.guild!,
     userId: interaction.user.id,
+    username: formatDiscordName(interaction.user),
     key,
     tier,
     note: staffHints.join("\n"),
