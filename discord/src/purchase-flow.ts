@@ -615,9 +615,6 @@ async function handleApprove(interaction: ButtonInteraction) {
       [
         `<@${openerId}> — your hardware was approved.`,
         "",
-        "Choose a license. A referral code is optional and is asked above where you heard about NeonAi.",
-        "Leave the code blank to pay the full price.",
-        "",
         formatTierList(),
         "",
         formatLifetimeRequirement(),
@@ -1450,12 +1447,7 @@ function paymentCard(
     .setDescription(`<@${openerId}> · **${getTierDisplayName(tier)}** license`)
     .addFields(
       { name: "Amount", value: `**${formatMoney(price)} USD**`, inline: true },
-      { name: "How to pay", value: howToPay },
-      {
-        name: "After you pay",
-        value:
-          "Send a screenshot of the payment in this ticket. Your license key will be sent here once staff confirms it.",
-      }
+      { name: "How to pay", value: howToPay }
     )
     .setFooter(brandEmbed().footer);
 }
