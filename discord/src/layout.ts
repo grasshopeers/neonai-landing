@@ -97,6 +97,8 @@ export const ROLES = [
       PermissionFlagsBits.ManageMessages,
       PermissionFlagsBits.ViewAuditLog,
       PermissionFlagsBits.MentionEveryone,
+      PermissionFlagsBits.CreateEvents,
+      PermissionFlagsBits.ManageEvents,
     ],
     mentionable: true,
   },

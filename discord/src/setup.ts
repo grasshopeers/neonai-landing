@@ -89,6 +89,16 @@ async function ensureRoles(guild: import("discord.js").Guild) {
     console.log(`  + created role: ${roleDef.name}`);
   }
 
+  const everyone = guild.roles.everyone;
+  const eventBits = PermissionFlagsBits.CreateEvents | PermissionFlagsBits.ManageEvents;
+  if (everyone.permissions.any(eventBits)) {
+    await everyone.setPermissions(
+      everyone.permissions.remove(eventBits),
+      "NeonAi: only Management can create events"
+    );
+    console.log("  ↻ removed event permissions from @everyone");
+  }
+
   return created;
 }
 
