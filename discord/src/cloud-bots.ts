@@ -148,9 +148,15 @@ function probe(host: string, path: string) {
         headers: { "User-Agent": "NeonAi" },
       },
       (res) => {
-        console.log(`https ${host} ${res.statusCode} in ${Date.now() - started}ms`);
-        res.resume();
-        resolve();
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk) => chunks.push(chunk as Buffer));
+        res.on("end", () => {
+          const body = Buffer.concat(chunks).toString("utf8").slice(0, 180);
+          console.log(
+            `https ${host} ${res.statusCode} in ${Date.now() - started}ms retry=${res.headers["retry-after"] ?? "-"} ${body}`
+          );
+          resolve();
+        });
       }
     );
     req.on("timeout", () => {
@@ -168,11 +174,5 @@ function probe(host: string, path: string) {
 
 await probe("example.com", "/");
 await probe("discord.com", "/api/v10/gateway");
-
-setTimeout(() => {
-  if (mainClient.isReady() && ticketClient.isReady()) return;
-  console.error("Discord login timed out. Exiting so the host can start again.");
-  process.exit(1);
-}, 75_000).unref();
 
 await Promise.all([mainClient.login(mainToken), ticketClient.login(ticketToken)]);
