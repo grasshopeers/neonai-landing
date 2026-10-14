@@ -1,11 +1,22 @@
+import { lookup } from "node:dns/promises";
 import { setDefaultResultOrder } from "node:dns";
 import { setDefaultAutoSelectFamily } from "node:net";
 import "dotenv/config";
 import { Client, GatewayIntentBits } from "discord.js";
+import { Agent, setGlobalDispatcher } from "undici";
 
-// Render's IPv6 route to Discord blackholes. Happy Eyeballs then never finishes login.
+// Render's IPv6 route to Discord never answers. Force every Discord request onto IPv4.
 setDefaultAutoSelectFamily(false);
 setDefaultResultOrder("ipv4first");
+const ipv4 = new Agent({ connect: { family: 4, autoSelectFamily: false } });
+setGlobalDispatcher(ipv4);
+
+const dnsStarted = Date.now();
+lookup("discord.com", { all: true })
+  .then((rows) =>
+    console.log(`discord dns ${Date.now() - dnsStarted}ms families ${rows.map((row) => row.family).join(",")}`)
+  )
+  .catch((err) => console.error("discord dns failed", err));
 import { registerMainBotEvents } from "./register-public-events.js";
 import { registerTicketBotEvents } from "./register-public-events.js";
 import { registerSlashCommands } from "./commands.js";
@@ -43,8 +54,8 @@ const intents = [
   GatewayIntentBits.MessageContent,
 ];
 
-const mainClient = new Client({ intents });
-const ticketClient = new Client({ intents });
+const mainClient = new Client({ intents, rest: { agent: ipv4 } });
+const ticketClient = new Client({ intents, rest: { agent: ipv4 } });
 
 for (const [label, client] of [
   ["NeonAi", mainClient],
@@ -53,10 +64,12 @@ for (const [label, client] of [
   client.on("error", (err) => console.error(`${label} error:`, err));
   client.on("shardError", (err) => console.error(`${label} connection error:`, err));
   client.on("shardDisconnect", (event) => console.error(`${label} disconnected`, event));
-  client.on("debug", (message) => {
+  const onDebug = (message: string) => {
     if (/token/i.test(message)) return;
     console.log(`${label}: ${message.split("\n")[0]?.slice(0, 220)}`);
-  });
+  };
+  client.on("debug", onDebug);
+  client.once("ready", () => client.off("debug", onDebug));
 }
 
 registerMainBotEvents(mainClient, guildId);
