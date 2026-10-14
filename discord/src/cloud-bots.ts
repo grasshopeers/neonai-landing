@@ -1,4 +1,5 @@
 import { setDefaultResultOrder } from "node:dns";
+import https from "node:https";
 import { setDefaultAutoSelectFamily } from "node:net";
 import "dotenv/config";
 import { Client, GatewayIntentBits } from "discord.js";
@@ -61,6 +62,11 @@ for (const [label, client] of [
     console.log(`${label}: ${message.split("\n")[0]?.slice(0, 220)}`);
   };
   client.on("debug", onDebug);
+  client.rest.on("restDebug", (info) => {
+    const line = String(info).split("\n")[0] ?? "";
+    if (/token/i.test(line)) return;
+    console.log(`${label} api: ${line.slice(0, 240)}`);
+  });
   client.once("ready", () => client.off("debug", onDebug));
 }
 
@@ -125,5 +131,32 @@ mainClient.on("interactionCreate", async (interaction) => {
 });
 
 startSelfKeepAlive();
+
+await new Promise<void>((resolve) => {
+  const started = Date.now();
+  const req = https.request(
+    { host: "discord.com", path: "/api/v10/gateway", method: "GET", family: 4, timeout: 8_000 },
+    (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk) => chunks.push(chunk as Buffer));
+      res.on("end", () => {
+        console.log(
+          `discord reachability ${res.statusCode} retry=${res.headers["retry-after"] ?? "-"} in ${Date.now() - started}ms ${Buffer.concat(chunks).toString("utf8").slice(0, 80)}`
+        );
+        resolve();
+      });
+    }
+  );
+  req.on("timeout", () => {
+    console.error("discord reachability timed out");
+    req.destroy();
+    resolve();
+  });
+  req.on("error", (err) => {
+    console.error(`discord reachability failed: ${err.message}`);
+    resolve();
+  });
+  req.end();
+});
 
 await Promise.all([mainClient.login(mainToken), ticketClient.login(ticketToken)]);
