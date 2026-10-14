@@ -1,8 +1,10 @@
 import { setDefaultResultOrder } from "node:dns";
+import { setDefaultAutoSelectFamily } from "node:net";
 import "dotenv/config";
 import { Client, GatewayIntentBits } from "discord.js";
 
-// Render's IPv6 path to Discord can hang a new login forever.
+// Render's IPv6 route to Discord blackholes. Happy Eyeballs then never finishes login.
+setDefaultAutoSelectFamily(false);
 setDefaultResultOrder("ipv4first");
 import { registerMainBotEvents } from "./register-public-events.js";
 import { registerTicketBotEvents } from "./register-public-events.js";
@@ -51,6 +53,10 @@ for (const [label, client] of [
   client.on("error", (err) => console.error(`${label} error:`, err));
   client.on("shardError", (err) => console.error(`${label} connection error:`, err));
   client.on("shardDisconnect", (event) => console.error(`${label} disconnected`, event));
+  client.on("debug", (message) => {
+    if (/token/i.test(message)) return;
+    console.log(`${label}: ${message.split("\n")[0]?.slice(0, 220)}`);
+  });
 }
 
 registerMainBotEvents(mainClient, guildId);
@@ -119,6 +125,6 @@ setTimeout(() => {
   if (mainClient.isReady() && ticketClient.isReady()) return;
   console.error("Discord login timed out. Exiting so the host can start again.");
   process.exit(1);
-}, 45_000).unref();
+}, 75_000).unref();
 
 await Promise.all([mainClient.login(mainToken), ticketClient.login(ticketToken)]);
