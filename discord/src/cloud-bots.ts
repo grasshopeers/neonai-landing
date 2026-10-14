@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { setDefaultResultOrder } from "node:dns";
+import https from "node:https";
 import { setDefaultAutoSelectFamily } from "node:net";
 import "dotenv/config";
 import { Client, GatewayIntentBits } from "discord.js";
@@ -133,6 +134,40 @@ mainClient.on("interactionCreate", async (interaction) => {
 });
 
 startSelfKeepAlive();
+
+function probe(host: string, path: string) {
+  const started = Date.now();
+  return new Promise<void>((resolve) => {
+    const req = https.request(
+      {
+        host,
+        path,
+        method: "GET",
+        family: 4,
+        timeout: 8_000,
+        headers: { "User-Agent": "NeonAi" },
+      },
+      (res) => {
+        console.log(`https ${host} ${res.statusCode} in ${Date.now() - started}ms`);
+        res.resume();
+        resolve();
+      }
+    );
+    req.on("timeout", () => {
+      console.error(`https ${host} timed out after ${Date.now() - started}ms`);
+      req.destroy();
+      resolve();
+    });
+    req.on("error", (err) => {
+      console.error(`https ${host} failed after ${Date.now() - started}ms: ${err.message}`);
+      resolve();
+    });
+    req.end();
+  });
+}
+
+await probe("example.com", "/");
+await probe("discord.com", "/api/v10/gateway");
 
 setTimeout(() => {
   if (mainClient.isReady() && ticketClient.isReady()) return;
