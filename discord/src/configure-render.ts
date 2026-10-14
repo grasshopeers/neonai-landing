@@ -26,7 +26,8 @@ const headers = {
 
 type ServiceRef = { id: string; name: string };
 
-const CLOUD_SERVICE = "neonai-bots";
+const CLOUD_SERVICE = "neonai-bots-eu";
+const BLOCKED_SERVICE = "neonai-bots";
 const LEGACY_SERVICES = ["neonai-bot", "neonai-ticket-bot"];
 
 const envVars = [
@@ -72,6 +73,7 @@ async function upsertCloudService(ownerId: string) {
         ownerId,
         repo: "https://github.com/grasshopeers/neonai-landing",
         branch: "main",
+        region: "frankfurt",
         autoDeploy: "yes",
         rootDir: "discord",
         buildFilter: { paths: ["discord/**"] },
@@ -130,7 +132,21 @@ try {
   const service = await upsertCloudService(ownerId);
   console.log(`${service.name} (${service.id})`);
   await deploy(service.id);
-  console.log("Deploy triggered — both bots run in one service (fits free tier hours).");
+  console.log("Deploy triggered — both bots run in one Frankfurt service.");
+
+  const blocked = (await listServices()).find((s) => s.name === BLOCKED_SERVICE);
+  if (blocked) {
+    await fetch(`https://api.render.com/v1/services/${blocked.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ autoDeploy: "no" }),
+    });
+    const suspended = await fetch(`https://api.render.com/v1/services/${blocked.id}/suspend`, {
+      method: "POST",
+      headers,
+    });
+    console.log(`Stopped Oregon service ${BLOCKED_SERVICE} (${suspended.status}). Discord had blocked that address.`);
+  }
 
   for (const legacy of LEGACY_SERVICES) {
     const old = (await listServices()).find((s) => s.name === legacy);

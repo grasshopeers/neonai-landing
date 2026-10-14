@@ -1,6 +1,4 @@
-import { lookup } from "node:dns/promises";
 import { setDefaultResultOrder } from "node:dns";
-import https from "node:https";
 import { setDefaultAutoSelectFamily } from "node:net";
 import "dotenv/config";
 import { Client, GatewayIntentBits } from "discord.js";
@@ -11,13 +9,6 @@ setDefaultAutoSelectFamily(false);
 setDefaultResultOrder("ipv4first");
 const ipv4 = new Agent({ connect: { family: 4, autoSelectFamily: false } });
 setGlobalDispatcher(ipv4);
-
-const dnsStarted = Date.now();
-lookup("discord.com", { all: true })
-  .then((rows) =>
-    console.log(`discord dns ${Date.now() - dnsStarted}ms families ${rows.map((row) => row.family).join(",")}`)
-  )
-  .catch((err) => console.error("discord dns failed", err));
 import { registerMainBotEvents } from "./register-public-events.js";
 import { registerTicketBotEvents } from "./register-public-events.js";
 import { registerSlashCommands } from "./commands.js";
@@ -134,45 +125,5 @@ mainClient.on("interactionCreate", async (interaction) => {
 });
 
 startSelfKeepAlive();
-
-function probe(host: string, path: string) {
-  const started = Date.now();
-  return new Promise<void>((resolve) => {
-    const req = https.request(
-      {
-        host,
-        path,
-        method: "GET",
-        family: 4,
-        timeout: 8_000,
-        headers: { "User-Agent": "NeonAi" },
-      },
-      (res) => {
-        const chunks: Buffer[] = [];
-        res.on("data", (chunk) => chunks.push(chunk as Buffer));
-        res.on("end", () => {
-          const body = Buffer.concat(chunks).toString("utf8").slice(0, 180);
-          console.log(
-            `https ${host} ${res.statusCode} in ${Date.now() - started}ms retry=${res.headers["retry-after"] ?? "-"} ${body}`
-          );
-          resolve();
-        });
-      }
-    );
-    req.on("timeout", () => {
-      console.error(`https ${host} timed out after ${Date.now() - started}ms`);
-      req.destroy();
-      resolve();
-    });
-    req.on("error", (err) => {
-      console.error(`https ${host} failed after ${Date.now() - started}ms: ${err.message}`);
-      resolve();
-    });
-    req.end();
-  });
-}
-
-await probe("example.com", "/");
-await probe("discord.com", "/api/v10/gateway");
 
 await Promise.all([mainClient.login(mainToken), ticketClient.login(ticketToken)]);
