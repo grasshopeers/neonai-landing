@@ -1,5 +1,9 @@
+import { setDefaultResultOrder } from "node:dns";
 import "dotenv/config";
 import { Client, GatewayIntentBits } from "discord.js";
+
+// Render's IPv6 path to Discord can hang a new login forever.
+setDefaultResultOrder("ipv4first");
 import { registerMainBotEvents } from "./register-public-events.js";
 import { registerTicketBotEvents } from "./register-public-events.js";
 import { registerSlashCommands } from "./commands.js";
@@ -39,6 +43,15 @@ const intents = [
 
 const mainClient = new Client({ intents });
 const ticketClient = new Client({ intents });
+
+for (const [label, client] of [
+  ["NeonAi", mainClient],
+  ["NeonAi Tickets", ticketClient],
+] as const) {
+  client.on("error", (err) => console.error(`${label} error:`, err));
+  client.on("shardError", (err) => console.error(`${label} connection error:`, err));
+  client.on("shardDisconnect", (event) => console.error(`${label} disconnected`, event));
+}
 
 registerMainBotEvents(mainClient, guildId);
 registerTicketBotEvents(ticketClient, guildId);
@@ -101,4 +114,11 @@ mainClient.on("interactionCreate", async (interaction) => {
 });
 
 startSelfKeepAlive();
+
+setTimeout(() => {
+  if (mainClient.isReady() && ticketClient.isReady()) return;
+  console.error("Discord login timed out. Exiting so the host can start again.");
+  process.exit(1);
+}, 45_000).unref();
+
 await Promise.all([mainClient.login(mainToken), ticketClient.login(ticketToken)]);
